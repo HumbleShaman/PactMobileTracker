@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const feedPath = path.resolve(process.argv[2] ?? path.join(root, 'data/feed.json'));
-const LOCAL = {
+const LOCAL = process.env.REMOTE ? {} : {
 	'https://raw.githubusercontent.com/HumbleShaman/PactMobileTracker/data/feed.json': feedPath,
 	'https://raw.githubusercontent.com/HumbleShaman/PactMobileTracker/main/scriptable/live.html': path.join(root, 'scriptable/live.html')
 };
@@ -244,3 +244,17 @@ if (!app.page) throw new Error('app mode did not load the live page');
 if (app.page.includes('"__PAYLOAD__"')) throw new Error('payload was not injected');
 writeFileSync(path.join(out, 'live.html'), app.page);
 console.log(`ok  app → live view (${(app.page.length / 1024).toFixed(0)} KB, base ${app.base})`);
+
+// The paste-once loader: downloads PactTracker.js from GitHub and runs it.
+{
+	const loader = readFileSync(path.join(root, 'scriptable/Loader.js'), 'utf8');
+	for (const fam of ['app', 'medium']) {
+		const inWidget = fam !== 'app';
+		globalThis.config = { runsInWidget: inWidget, runsInAccessoryWidget: false, runsInApp: !inWidget, widgetFamily: inWidget ? fam : undefined };
+		globalThis.args = { widgetParameter: null, queryParameters: {} };
+		captured = { widget: null, page: null };
+		await new AsyncFunction(loader)();
+		if (inWidget ? !captured.widget : !captured.page) throw new Error(`loader (${fam}) produced nothing`);
+		console.log(`ok  Loader.js → ${fam}`);
+	}
+}
