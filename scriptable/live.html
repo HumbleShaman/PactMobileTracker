@@ -1,0 +1,890 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Pact Fees</title>
+<style>
+	:root {
+		--bg: #0a0b12;
+		--surface: #10121c;
+		--raised: #13161f;
+		--overlay: #1e2130;
+		--bright: #ffffff;
+		--text: #c9cbd4;
+		--muted: #7a7f91;
+		--faint: #4a4f61;
+		--hair: rgba(255, 255, 255, 0.06);
+		--total: #0098d4;
+		--proto: #bb8540;
+		--gain: #4ade80;
+		--accent: #00bfff;
+		--warn: #d9a055;
+	}
+	* { box-sizing: border-box; margin: 0; padding: 0; }
+	html, body { background: var(--bg); color: var(--text); }
+	body {
+		font: 15px/1.4 -apple-system, system-ui, 'Segoe UI', sans-serif;
+		-webkit-font-smoothing: antialiased;
+		-webkit-user-select: none;
+		user-select: none;
+		-webkit-tap-highlight-color: transparent;
+		padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 28px);
+		max-width: 560px;
+		margin: 0 auto;
+		overflow-x: hidden;
+	}
+	.num { font-family: ui-rounded, -apple-system, system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+
+	.top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+	.live { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: var(--muted); }
+	.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
+	.live.on .dot { background: var(--gain); animation: pulse 2s ease-out infinite; }
+	.live.on { color: var(--text); }
+	@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.55); } 80%, 100% { box-shadow: 0 0 0 9px rgba(74, 222, 128, 0); } }
+	.since { font-size: 12px; color: var(--muted); }
+
+	.hero { position: relative; margin-bottom: 20px; }
+	.caption { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+	.odo { display: flex; align-items: flex-end; font-size: clamp(40px, 12.5vw, 60px); font-weight: 700; color: var(--bright); letter-spacing: -0.02em; white-space: nowrap; }
+	.odo .c { display: inline-block; height: 1.12em; overflow: hidden; }
+	.odo .col { display: flex; flex-direction: column; transition: transform 0.55s cubic-bezier(0.2, 0.9, 0.25, 1); }
+	.odo.fast .col { transition-duration: 0.08s; }
+	.odo .col span, .odo .s { display: block; height: 1.12em; line-height: 1.12em; }
+	.odo .sub { font-size: 0.52em; color: var(--muted); margin-bottom: 0.14em; }
+	.odo.bump { animation: bump 0.5s ease-out; }
+	@keyframes bump { 30% { text-shadow: 0 0 22px rgba(0, 191, 255, 0.55); } }
+	.float { position: absolute; right: 4px; top: 30px; font-size: 15px; font-weight: 700; color: var(--gain); pointer-events: none; animation: rise 1.3s ease-out forwards; }
+	@keyframes rise { from { opacity: 0; transform: translateY(8px); } 15% { opacity: 1; } to { opacity: 0; transform: translateY(-34px); } }
+
+	.gain { display: inline-flex; align-items: baseline; gap: 8px; margin-top: 8px; padding: 6px 12px; border-radius: 8px; background: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.22); }
+	.gain .gv { font-size: 20px; font-weight: 700; color: var(--gain); }
+	.gain .gl { font-size: 13px; color: var(--text); }
+
+	.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+	.tile { background: var(--raised); border: 1px solid var(--hair); border-radius: 10px; padding: 10px 11px; min-width: 0; }
+	.tl { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+	.tv { font-size: 18px; font-weight: 700; color: var(--bright); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.ts { font-size: 11px; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.sw { display: inline-block; width: 8px; height: 8px; border-radius: 2px; flex: none; }
+	.sw.total { background: var(--total); }
+	.sw.proto { background: var(--proto); }
+
+	.card { background: var(--raised); border: 1px solid var(--hair); border-radius: 12px; padding: 14px 14px 12px; margin-bottom: 12px; }
+	.card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+	.card-title { font-size: 14px; font-weight: 600; color: var(--bright); }
+	.sub { font-size: 12px; color: var(--muted); }
+	.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 4px; font-size: 12px; color: var(--muted); }
+	.legend span { display: inline-flex; align-items: center; gap: 5px; }
+	.legend b { color: var(--text); font-weight: 600; }
+	.seg { display: flex; background: var(--overlay); border-radius: 8px; padding: 2px; flex: none; }
+	.seg button { font: 600 12px -apple-system, system-ui, sans-serif; color: var(--muted); background: none; border: 0; padding: 6px 10px; border-radius: 6px; }
+	.seg button.on { background: var(--raised); color: var(--bright); }
+
+	.chart, .bars { position: relative; touch-action: pan-y; }
+	svg { display: block; width: 100%; overflow: visible; }
+	.axis { font: 10px -apple-system, system-ui, sans-serif; fill: var(--faint); }
+	.grid { stroke: var(--hair); stroke-width: 1; }
+	.tip { position: absolute; top: 0; pointer-events: none; opacity: 0; transition: opacity 0.12s; background: var(--overlay); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 7px 9px; font-size: 12px; color: var(--text); white-space: nowrap; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4); }
+	.tip.on { opacity: 1; }
+	.tip .tt { color: var(--muted); font-size: 11px; margin-bottom: 3px; }
+	.tip .tr { display: flex; align-items: center; gap: 6px; }
+	.tip .tr b { margin-left: auto; padding-left: 12px; color: var(--bright); font-weight: 600; }
+
+	details { margin-top: 8px; }
+	summary { font-size: 12px; color: var(--muted); cursor: pointer; }
+	table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 12px; }
+	th { text-align: right; color: var(--muted); font-weight: 600; padding: 4px 0; border-bottom: 1px solid var(--hair); }
+	th:first-child, td:first-child { text-align: left; }
+	td { text-align: right; padding: 4px 0; border-bottom: 1px solid var(--hair); }
+
+	.feed { list-style: none; }
+	.feed li { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 10px; padding: 8px 6px; margin: 0 -6px; border-radius: 8px; border-bottom: 1px solid var(--hair); }
+	.feed li:last-child { border-bottom: 0; }
+	.feed li.new { animation: flash 1.6s ease-out; }
+	@keyframes flash { from { background: rgba(74, 222, 128, 0.16); transform: translateY(-6px); } 25% { transform: none; } to { background: transparent; } }
+	.fee { font-size: 15px; font-weight: 700; color: var(--gain); }
+	.pair { font-size: 13px; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.pair small { display: block; font-size: 11px; color: var(--muted); }
+	.ago { font-size: 11px; color: var(--faint); }
+
+	footer { font-size: 11px; color: var(--faint); line-height: 1.5; margin-top: 16px; }
+	footer p + p { margin-top: 4px; }
+	.warn { color: var(--warn); }
+
+	#toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 14px); transform: translate(-50%, -140%); transition: transform 0.45s cubic-bezier(0.25, 1, 0.5, 1); background: var(--overlay); border: 1px solid rgba(74, 222, 128, 0.35); color: var(--bright); padding: 10px 16px; border-radius: 12px; font-weight: 600; font-size: 14px; white-space: nowrap; z-index: 10; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+	#toast.on { transform: translate(-50%, 0); }
+	#toast small { display: block; font-weight: 500; font-size: 11px; color: var(--muted); }
+	#confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9; }
+
+	@media (prefers-reduced-motion: reduce) {
+		.odo .col { transition: none; }
+		.float, .feed li.new, .live.on .dot { animation: none; }
+	}
+</style>
+</head>
+<body>
+<header class="top">
+	<div class="live" id="live"><span class="dot"></span><span id="liveLabel">SYNCING</span></div>
+	<div class="since" id="since"></div>
+</header>
+
+<section class="hero" id="hero">
+	<div class="caption">Total fees earned</div>
+	<div class="odo num" id="odo" aria-live="off"></div>
+	<div class="gain"><span class="gv num" id="gainVal">+$0.00</span><span class="gl" id="gainLabel"></span></div>
+</section>
+
+<section class="tiles">
+	<div class="tile"><div class="tl"><i class="sw proto"></i>Protocol</div><div class="tv num" id="tProto">–</div><div class="ts" id="tProtoSub"></div></div>
+	<div class="tile"><div class="tl">Today</div><div class="tv num" id="tToday">–</div><div class="ts" id="tTodaySub"></div></div>
+	<div class="tile"><div class="tl">Last 24h</div><div class="tv num" id="tDay">–</div><div class="ts" id="tDaySub"></div></div>
+</section>
+
+<section class="card">
+	<div class="card-head">
+		<div>
+			<div class="card-title" id="chartTitle">Fees earned</div>
+			<div class="legend">
+				<span><i class="sw total"></i>Total <b class="num" id="lgTotal"></b></span>
+				<span><i class="sw proto"></i>Protocol <b class="num" id="lgProto"></b></span>
+			</div>
+		</div>
+		<div class="seg" id="range">
+			<button data-r="24h">24H</button><button data-r="7d">7D</button><button data-r="all">All</button>
+		</div>
+	</div>
+	<div class="chart" id="chart"><svg id="svg" height="190"></svg><div class="tip" id="tip"></div></div>
+</section>
+
+<section class="card">
+	<div class="card-head"><div class="card-title">Fees per hour</div><div class="sub">last 24 hours</div></div>
+	<div class="bars" id="bars"><svg id="barsSvg" height="110"></svg><div class="tip" id="btip"></div></div>
+	<details><summary>Show as table</summary><table id="table"></table></details>
+</section>
+
+<section class="card">
+	<div class="card-head"><div class="card-title">Live swaps</div><div class="sub" id="feedSub"></div></div>
+	<ul class="feed" id="feed"></ul>
+</section>
+
+<footer id="foot"></footer>
+<div id="toast"></div>
+<canvas id="confetti"></canvas>
+
+<script id="payload" type="application/json">"__PAYLOAD__"</script>
+<script>
+'use strict';
+const API = 'https://pact.fi/api/v1';
+const ALGOD = 'https://mainnet-api.algonode.cloud';
+const CHAIN = 'algorand-mainnet';
+const FEED_URL = 'https://raw.githubusercontent.com/HumbleShaman/PactMobileTracker/data/feed.json';
+const MAX_SWAP_USD = 5e6; // mirrors collector/fees.mjs
+const POLL_MS = 5000;
+const MILESTONES = [10, 25, 50, 100, 250, 500, 1e3, 2.5e3, 5e3, 1e4, 2.5e4, 5e4, 1e5, 2.5e5, 5e5, 1e6, 2.5e6, 5e6, 1e7];
+const $ = (id) => document.getElementById(id);
+
+const S = {
+	feed: null,
+	base: null,
+	milestone: 0,
+	pools: {},
+	hours: new Map(), // hourStartSec -> [fee, proto, swaps]
+	total: 0,
+	proto: 0,
+	recent: [],
+	seen: new Set(),
+	newestTs: 0,
+	ready: false,
+	gapSince: 0,
+	range: 'all',
+	lastOk: 0
+};
+
+// Read by the Scriptable host every few seconds → next visit's baseline.
+window.__pactState = () => (S.ready ? { total: S.total, milestone: S.milestone } : null);
+
+// ─── formatting ───
+function num(v, dp) {
+	const parts = Math.abs(v).toFixed(dp).split('.');
+	return (v < 0 ? '-' : '') + parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (parts[1] ? '.' + parts[1] : '');
+}
+const money = (v, dp) => (v < 0 ? '-$' : '$') + num(Math.abs(v), dp == null ? 2 : dp);
+const feeMoney = (v) => (v > 0 && v < 0.0001 ? '<$0.0001' : money(v, v < 1 ? 4 : 2));
+const plusFee = (v) => (v > 0 && v < 0.0001 ? '<$0.0001' : '+' + feeMoney(v));
+function compact(v) {
+	const a = Math.abs(v);
+	if (a >= 1e6) return '$' + (v / 1e6).toFixed(1) + 'M';
+	if (a >= 1e3) return '$' + (v / 1e3).toFixed(a >= 1e4 ? 0 : 1) + 'K';
+	return '$' + v.toFixed(a >= 10 ? 0 : a >= 1 ? 1 : 2);
+}
+const hourLabel = (ms) => new Date(ms).toLocaleTimeString([], { hour: 'numeric' });
+const timeLabel = (ms) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+const dayLabel = (ms) => new Date(ms).toLocaleDateString([], { month: 'short', day: 'numeric' });
+function whenLabel(ms) {
+	const d = new Date(ms);
+	const today = new Date();
+	if (d.toDateString() === today.toDateString()) return timeLabel(ms);
+	return d.toLocaleDateString([], { weekday: 'short' }) + ' ' + timeLabel(ms);
+}
+function ago(ms) {
+	const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+	if (s < 60) return s + 's';
+	if (s < 3600) return Math.floor(s / 60) + 'm';
+	return Math.floor(s / 3600) + 'h';
+}
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+// ─── fee math (mirrors collector/fees.mjs) ───
+async function getJSON(url) {
+	const r = await fetch(url, { cache: 'no-store' });
+	if (!r.ok) throw new Error('HTTP ' + r.status);
+	return r.json();
+}
+
+async function readPoolSplit(poolId) {
+	try {
+		const app = await getJSON(ALGOD + '/v2/applications/' + poolId);
+		const gs = {};
+		for (const kv of (app.params && app.params['global-state']) || []) {
+			if (kv.value.type === 2) gs[atob(kv.key)] = kv.value.uint;
+		}
+		if (gs.FEE_BPS != null) return [gs.FEE_BPS, gs.PACT_FEE_BPS || 0];
+		if (gs.swap_fee_bps != null) return [gs.swap_fee_bps, (gs.swap_fee_bps * (gs.protocol_fee_bps || 0)) / 1e4];
+	} catch (e) {}
+	return null;
+}
+
+function swapFees(s, split) {
+	const usd = Number(s.usdValue) || 0;
+	if (!(usd > 0) || usd > MAX_SWAP_USD) return [0, 0];
+	if (split) return [(usd * split[0]) / 1e4, (usd * split[1]) / 1e4];
+	const ratio = (a, b) => {
+		const v = Number(a) / Number(b);
+		return isFinite(v) ? v : 0;
+	};
+	const onOut = s.feeAssetId === (s.tokenOut && s.tokenOut.assetId);
+	const proto = ratio(s.protocolFee, onOut ? s.amountOut : s.amountIn) * usd;
+	return [ratio(s.lpFee, s.amountIn) * usd + proto, proto];
+}
+
+async function price(list) {
+	for (const s of list) {
+		if (!(s.poolId in S.pools)) S.pools[s.poolId] = await readPoolSplit(s.poolId);
+	}
+	return list.map((s) => {
+		const f = swapFees(s, S.pools[s.poolId]);
+		return {
+			id: s.id,
+			ts: s.ts,
+			pool: s.poolId,
+			a: (s.tokenIn && s.tokenIn.symbol) || '?',
+			b: (s.tokenOut && s.tokenOut.symbol) || '?',
+			usd: Number(s.usdValue) || 0,
+			fee: f[0],
+			proto: f[1]
+		};
+	});
+}
+
+/** Unseen swaps with ts >= floorTs, oldest first. `reached` is false if maxPages ran out first. */
+async function fetchSince(floorTs, maxPages) {
+	const out = [];
+	let cursor = null;
+	for (let page = 0; page < maxPages; page++) {
+		const j = await getJSON(API + '/swaps?chain=' + CHAIN + '&limit=100' + (cursor ? '&cursor=' + encodeURIComponent(cursor) : ''));
+		const rows = j.data || [];
+		for (const s of rows) {
+			if (s.ts < floorTs) return { rows: out.reverse(), reached: true };
+			if (!S.seen.has(s.id)) out.push(s);
+		}
+		cursor = j.meta && j.meta.page && j.meta.page.nextCursor;
+		if (!cursor || !rows.length) return { rows: out.reverse(), reached: true };
+	}
+	return { rows: out.reverse(), reached: false };
+}
+
+// ─── state ───
+function apply(r) {
+	const h = Math.floor(r.ts / 1000 / 3600) * 3600;
+	const b = S.hours.get(h) || [0, 0, 0];
+	b[0] += r.fee;
+	b[1] += r.proto;
+	b[2] += 1;
+	S.hours.set(h, b);
+	S.total += r.fee;
+	S.proto += r.proto;
+	S.recent.unshift(r);
+	if (S.recent.length > 40) S.recent.pop();
+}
+
+function sums() {
+	const now = Date.now() / 1000;
+	const midnight = new Date();
+	midnight.setHours(0, 0, 0, 0);
+	const m0 = midnight.getTime() / 1000;
+	let today = 0, todayProto = 0, day = 0, dayProto = 0, daySwaps = 0;
+	for (const [t, b] of S.hours) {
+		if (t >= m0) { today += b[0]; todayProto += b[1]; }
+		if (t >= now - 86400) { day += b[0]; dayProto += b[1]; daySwaps += b[2]; }
+	}
+	return { today, todayProto, day, dayProto, daySwaps };
+}
+
+/** Cumulative [tEndSec, total, proto] points from genesis. */
+function cumulative() {
+	const hourlyFrom = S.feed.hourlyFrom || 0;
+	const now = Date.now() / 1000;
+	const rows = Array.from(S.hours.entries()).sort((a, b) => a[0] - b[0]);
+	const pts = [[S.feed.genesis, 0, 0]];
+	let c = 0, p = 0;
+	for (const [t, b] of rows) {
+		c += b[0];
+		p += b[1];
+		pts.push([Math.min(t + (t < hourlyFrom ? 86400 : 3600), now), c, p]);
+	}
+	return pts;
+}
+
+// ─── odometer ───
+const odo = $('odo');
+let odoText = '';
+function odoString(v) {
+	return '$' + num(v, 4);
+}
+function setOdo(v) {
+	const str = odoString(v);
+	const dot = str.indexOf('.');
+	if (str.length !== odoText.length) {
+		odo.innerHTML = '';
+		for (let i = 0; i < str.length; i++) {
+			const ch = str[i];
+			const sub = i > dot + 2 ? ' sub' : '';
+			if (/\d/.test(ch)) {
+				const c = document.createElement('span');
+				c.className = 'c' + sub;
+				const col = document.createElement('span');
+				col.className = 'col';
+				col.innerHTML = '0123456789'.split('').map((d) => '<span>' + d + '</span>').join('');
+				c.appendChild(col);
+				odo.appendChild(c);
+			} else {
+				const s = document.createElement('span');
+				s.className = 's' + sub;
+				s.textContent = ch;
+				odo.appendChild(s);
+			}
+		}
+	}
+	const kids = odo.children;
+	for (let i = 0; i < str.length; i++) {
+		const col = kids[i].firstChild;
+		if (col && col.className === 'col') col.style.transform = 'translateY(' + -1.12 * Number(str[i]) + 'em)';
+	}
+	odoText = str;
+}
+
+let tween = null;
+function countTo(from, to, ms, done) {
+	cancelAnimationFrame(tween);
+	odo.classList.add('fast');
+	const t0 = performance.now();
+	const step = (now) => {
+		const k = Math.min(1, (now - t0) / ms);
+		const e = 1 - Math.pow(1 - k, 3);
+		setOdo(from + (to - from) * e);
+		setGain(from + (to - from) * e);
+		if (k < 1) tween = requestAnimationFrame(step);
+		else {
+			odo.classList.remove('fast');
+			if (done) done();
+		}
+	};
+	tween = requestAnimationFrame(step);
+}
+
+function gainBase() {
+	return S.base ? S.base.total : S.total - sums().today;
+}
+function setGain(shownTotal) {
+	const d = Math.max(0, shownTotal - gainBase());
+	$('gainVal').textContent = '+' + money(d, d < 10 ? 4 : 2);
+}
+
+let lastFloat = 0, floatAcc = 0, floatTimer = null;
+function floatGain(fee) {
+	floatAcc += fee;
+	const flush = () => {
+		floatTimer = null;
+		if (floatAcc <= 0) return;
+		const el = document.createElement('div');
+		el.className = 'float num';
+		el.textContent = plusFee(floatAcc);
+		$('hero').appendChild(el);
+		setTimeout(() => el.remove(), 1400);
+		floatAcc = 0;
+		lastFloat = Date.now();
+	};
+	if (!floatTimer) floatTimer = setTimeout(flush, Math.max(0, 450 - (Date.now() - lastFloat)));
+}
+
+// ─── rendering ───
+function renderStatic() {
+	$('since').textContent = 'since ' + dayLabel(S.feed.genesis * 1000) + ', ' + timeLabel(S.feed.genesis * 1000);
+	$('gainLabel').textContent = S.base ? 'since you last checked · ' + whenLabel(S.base.at) : 'today';
+}
+
+function renderTiles() {
+	const s = sums();
+	$('tProto').textContent = money(S.proto);
+	$('tProtoSub').textContent = S.total > 0 ? ((S.proto / S.total) * 100).toFixed(1) + '% of total' : '';
+	$('tToday').textContent = money(s.today);
+	$('tTodaySub').textContent = 'Protocol ' + money(s.todayProto);
+	$('tDay').textContent = money(s.day);
+	$('tDaySub').textContent = '≈ ' + money(s.day / 24) + '/hr';
+	$('feedSub').textContent = s.daySwaps.toLocaleString() + ' swaps in 24h';
+}
+
+function niceMax(v) {
+	if (v <= 0) return 1;
+	const p = Math.pow(10, Math.floor(Math.log10(v)));
+	for (const m of [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]) if (m * p >= v) return m * p;
+	return 10 * p;
+}
+
+function timeTicks(t0, t1) {
+	const span = t1 - t0;
+	const H = 3600;
+	const step = span <= 30 * H ? 6 * H : span <= 3 * 86400 ? 12 * H : span <= 10 * 86400 ? 86400 : span <= 70 * 86400 ? 7 * 86400 : 30 * 86400;
+	const out = [];
+	// Align to local hour/day boundaries.
+	const d = new Date(t0 * 1000);
+	d.setMinutes(0, 0, 0);
+	if (step >= 86400) d.setHours(0);
+	else d.setHours(Math.ceil(d.getHours() / (step / H)) * (step / H));
+	for (let t = d.getTime() / 1000; t <= t1; t += step) if (t >= t0) out.push(t);
+	const fmt = step < 86400 ? (t) => hourLabel(t * 1000) : (t) => dayLabel(t * 1000);
+	return out.map((t) => [t, fmt(t)]);
+}
+
+let chartPts = [];
+function renderChart() {
+	const svg = $('svg');
+	const W = svg.clientWidth || 340;
+	const H = 190;
+	const m = { l: 40, r: 8, t: 12, b: 22 };
+	const now = Date.now() / 1000;
+	const all = cumulative();
+	all.push([now, S.total, S.proto]);
+	const win = S.range === '24h' ? 86400 : S.range === '7d' ? 7 * 86400 : 0;
+	let pts = all;
+	if (win) {
+		const start = Math.max(now - win, S.feed.genesis);
+		// value at window start (linear between surrounding points)
+		let i = all.findIndex((p) => p[0] >= start);
+		if (i < 0) i = all.length - 1;
+		const a = all[Math.max(0, i - 1)], b = all[i];
+		const k = b[0] === a[0] ? 1 : (start - a[0]) / (b[0] - a[0]);
+		const c0 = a[1] + (b[1] - a[1]) * k, p0 = a[2] + (b[2] - a[2]) * k;
+		pts = [[start, 0, 0]].concat(all.slice(i).filter((p) => p[0] > start).map((p) => [p[0], p[1] - c0, p[2] - p0]));
+	}
+	chartPts = pts;
+	const t0 = pts[0][0], t1 = pts[pts.length - 1][0];
+	const last = pts[pts.length - 1];
+	const yMax = niceMax(last[1] * 1.08);
+	const X = (t) => m.l + ((t - t0) / Math.max(1, t1 - t0)) * (W - m.l - m.r);
+	const Y = (v) => m.t + (1 - v / yMax) * (H - m.t - m.b);
+
+	$('chartTitle').textContent = win ? 'Fees earned · last ' + (S.range === '24h' ? '24 hours' : '7 days') : 'Fees earned since ' + dayLabel(S.feed.genesis * 1000);
+	$('lgTotal').textContent = money(last[1]);
+	$('lgProto').textContent = money(last[2]);
+
+	let g = '';
+	for (let i = 0; i <= 4; i++) {
+		const v = (yMax / 4) * i;
+		g += '<line class="grid" x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + Y(v) + '" y2="' + Y(v) + '"/>';
+		g += '<text class="axis num" x="' + (m.l - 6) + '" y="' + (Y(v) + 3) + '" text-anchor="end">' + compact(v) + '</text>';
+	}
+	for (const [t, label] of timeTicks(t0, t1)) {
+		g += '<text class="axis" x="' + X(t) + '" y="' + (H - 6) + '" text-anchor="middle">' + label + '</text>';
+	}
+	const path = (idx) => pts.map((p, i) => (i ? 'L' : 'M') + X(p[0]).toFixed(1) + ' ' + Y(p[idx]).toFixed(1)).join('');
+	const area = path(1) + 'L' + X(t1).toFixed(1) + ' ' + Y(0) + 'L' + X(t0).toFixed(1) + ' ' + Y(0) + 'Z';
+	svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+	svg.innerHTML =
+		'<defs><linearGradient id="fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0098d4" stop-opacity=".28"/><stop offset="1" stop-color="#0098d4" stop-opacity="0"/></linearGradient></defs>' +
+		g +
+		'<path d="' + area + '" fill="url(#fill)"/>' +
+		'<path d="' + path(2) + '" fill="none" stroke="#bb8540" stroke-width="2" stroke-linejoin="round"/>' +
+		'<path d="' + path(1) + '" fill="none" stroke="#0098d4" stroke-width="2" stroke-linejoin="round"/>' +
+		'<circle cx="' + X(t1) + '" cy="' + Y(last[2]) + '" r="4" fill="#bb8540" stroke="#13161f" stroke-width="2"/>' +
+		'<circle cx="' + X(t1) + '" cy="' + Y(last[1]) + '" r="4.5" fill="#0098d4" stroke="#13161f" stroke-width="2"/>' +
+		'<g id="xh" opacity="0"><line id="xl" y1="' + m.t + '" y2="' + (H - m.b) + '" stroke="rgba(255,255,255,.25)"/>' +
+		'<circle id="xt" r="4.5" fill="#0098d4" stroke="#13161f" stroke-width="2"/><circle id="xp" r="4" fill="#bb8540" stroke="#13161f" stroke-width="2"/></g>';
+	svg._geo = { X, Y, m, W, H };
+}
+
+function renderBars() {
+	const svg = $('barsSvg');
+	const W = svg.clientWidth || 340;
+	const H = 110;
+	const m = { l: 40, r: 8, t: 8, b: 20 };
+	const nowH = Math.floor(Date.now() / 1000 / 3600) * 3600;
+	const rows = [];
+	for (let i = 23; i >= 0; i--) {
+		const t = nowH - i * 3600;
+		const b = S.hours.get(t) || [0, 0, 0];
+		rows.push([t, b[0], b[1], b[2]]);
+	}
+	const yMax = niceMax(Math.max.apply(null, rows.map((r) => r[1])) * 1.05);
+	const slot = (W - m.l - m.r) / rows.length;
+	const bw = Math.max(2, slot - 2); // 2px surface gap between bars
+	const Y = (v) => m.t + (1 - v / yMax) * (H - m.t - m.b);
+	let g = '';
+	for (let i = 0; i <= 2; i++) {
+		const v = (yMax / 2) * i;
+		g += '<line class="grid" x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + Y(v) + '" y2="' + Y(v) + '"/>';
+		g += '<text class="axis num" x="' + (m.l - 6) + '" y="' + (Y(v) + 3) + '" text-anchor="end">' + compact(v) + '</text>';
+	}
+	rows.forEach((r, i) => {
+		const x = m.l + i * slot + 1;
+		const y = Y(r[1]);
+		const h = Math.max(0, Y(0) - y);
+		const current = i === rows.length - 1;
+		if (h > 0) {
+			const rad = Math.min(4, bw / 2, h);
+			// rounded top, square baseline
+			g += '<path d="M' + x + ' ' + Y(0) + 'V' + (y + rad) + 'Q' + x + ' ' + y + ' ' + (x + rad) + ' ' + y + 'H' + (x + bw - rad) + 'Q' + (x + bw) + ' ' + y + ' ' + (x + bw) + ' ' + (y + rad) + 'V' + Y(0) + 'Z" fill="#0098d4"' + (current ? ' fill-opacity=".55"' : '') + '/>';
+		}
+		if (i % 6 === 0) g += '<text class="axis" x="' + (x + bw / 2) + '" y="' + (H - 5) + '" text-anchor="middle">' + hourLabel(r[0] * 1000) + '</text>';
+	});
+	svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+	svg.innerHTML = g + '<rect id="bh" y="' + m.t + '" height="' + (H - m.t - m.b) + '" fill="rgba(255,255,255,.06)" opacity="0"/>';
+	svg._geo = { m, slot, rows };
+
+	$('table').innerHTML =
+		'<tr><th>Hour</th><th>Total</th><th>Protocol</th><th>Swaps</th></tr>' +
+		rows.slice().reverse().map((r) => '<tr><td>' + hourLabel(r[0] * 1000) + '</td><td class="num">' + money(r[1]) + '</td><td class="num">' + money(r[2]) + '</td><td class="num">' + r[3].toLocaleString() + '</td></tr>').join('');
+}
+
+function feedRow(r, fresh) {
+	const li = document.createElement('li');
+	if (fresh) li.className = 'new';
+	li.innerHTML =
+		'<span class="fee num">' + plusFee(r.fee) + '</span>' +
+		'<span class="pair">' + esc(r.a) + ' → ' + esc(r.b) + '<small class="num">' + money(r.usd) + ' swap · ' + feeMoney(r.proto) + ' protocol</small></span>' +
+		'<span class="ago num" data-ts="' + r.ts + '">' + ago(r.ts) + '</span>';
+	return li;
+}
+
+function renderFeed() {
+	const ul = $('feed');
+	ul.innerHTML = '';
+	for (const r of S.recent.slice(0, 25)) ul.appendChild(feedRow(r, false));
+}
+
+function pushFeed(r) {
+	const ul = $('feed');
+	ul.insertBefore(feedRow(r, true), ul.firstChild);
+	while (ul.children.length > 25) ul.removeChild(ul.lastChild);
+}
+
+function renderFoot() {
+	const f = S.feed;
+	let html = '<p>Fees = swap USD value × each pool’s on-chain fee. Protocol = the pool’s PACT_FEE_BPS (classic &amp; stable pools) or protocol share (weighted pools).</p>';
+	html += '<p>Collector updated ' + ago(f.updatedAt * 1000) + ' ago · live from pact.fi' + (S.lastOk ? ' · checked ' + ago(S.lastOk) + ' ago' : '') + '</p>';
+	if (S.gapSince) html += '<p class="warn">Collector is behind; swaps before ' + timeLabel(S.gapSince) + ' will be counted once it catches up.</p>';
+	$('foot').innerHTML = html;
+}
+
+let renderQueued = false;
+function scheduleRender() {
+	if (renderQueued) return;
+	renderQueued = true;
+	setTimeout(() => {
+		renderQueued = false;
+		renderTiles();
+		renderChart();
+		renderBars();
+	}, 800);
+}
+
+// ─── interaction ───
+function tipRows(title, rows) {
+	return '<div class="tt">' + title + '</div>' + rows.map((r) => '<div class="tr"><i class="sw ' + r[0] + '"></i>' + r[1] + '<b class="num">' + r[2] + '</b></div>').join('');
+}
+
+function placeTip(tip, box, x) {
+	const w = tip.offsetWidth;
+	tip.style.left = Math.max(0, Math.min(box.clientWidth - w, x - w / 2)) + 'px';
+	tip.style.top = '-8px';
+	tip.style.transform = 'translateY(-100%)';
+}
+
+function bindChart() {
+	const box = $('chart'), svg = $('svg'), tip = $('tip');
+	const move = (e) => {
+		const geo = svg._geo;
+		if (!geo || chartPts.length < 2) return;
+		const rect = svg.getBoundingClientRect();
+		const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+		let best = chartPts[0], bd = Infinity;
+		for (const p of chartPts) {
+			const d = Math.abs(geo.X(p[0]) - x);
+			if (d < bd) { bd = d; best = p; }
+		}
+		const cx = geo.X(best[0]);
+		const xh = svg.querySelector('#xh');
+		xh.setAttribute('opacity', '1');
+		svg.querySelector('#xl').setAttribute('x1', cx);
+		svg.querySelector('#xl').setAttribute('x2', cx);
+		svg.querySelector('#xt').setAttribute('cx', cx);
+		svg.querySelector('#xt').setAttribute('cy', geo.Y(best[1]));
+		svg.querySelector('#xp').setAttribute('cx', cx);
+		svg.querySelector('#xp').setAttribute('cy', geo.Y(best[2]));
+		tip.innerHTML = tipRows(whenLabel(best[0] * 1000), [['total', 'Total', money(best[1])], ['proto', 'Protocol', money(best[2])]]);
+		tip.classList.add('on');
+		placeTip(tip, box, cx);
+	};
+	const leave = () => {
+		tip.classList.remove('on');
+		const xh = svg.querySelector('#xh');
+		if (xh) xh.setAttribute('opacity', '0');
+	};
+	box.addEventListener('pointermove', move);
+	box.addEventListener('pointerdown', move);
+	box.addEventListener('touchmove', move, { passive: true });
+	box.addEventListener('pointerleave', leave);
+	box.addEventListener('touchend', () => setTimeout(leave, 1200));
+}
+
+function bindBars() {
+	const box = $('bars'), svg = $('barsSvg'), tip = $('btip');
+	const move = (e) => {
+		const geo = svg._geo;
+		if (!geo) return;
+		const rect = svg.getBoundingClientRect();
+		const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+		const i = Math.max(0, Math.min(geo.rows.length - 1, Math.floor((x - geo.m.l) / geo.slot)));
+		const r = geo.rows[i];
+		const hl = svg.querySelector('#bh');
+		hl.setAttribute('x', geo.m.l + i * geo.slot);
+		hl.setAttribute('width', geo.slot);
+		hl.setAttribute('opacity', '1');
+		tip.innerHTML = tipRows(hourLabel(r[0] * 1000) + ' – ' + hourLabel((r[0] + 3600) * 1000), [['total', 'Total', money(r[1])], ['proto', 'Protocol', money(r[2])], ['', 'Swaps', r[3].toLocaleString()]]);
+		tip.classList.add('on');
+		placeTip(tip, box, geo.m.l + (i + 0.5) * geo.slot);
+	};
+	const leave = () => {
+		tip.classList.remove('on');
+		const hl = svg.querySelector('#bh');
+		if (hl) hl.setAttribute('opacity', '0');
+	};
+	box.addEventListener('pointermove', move);
+	box.addEventListener('pointerdown', move);
+	box.addEventListener('touchmove', move, { passive: true });
+	box.addEventListener('pointerleave', leave);
+	box.addEventListener('touchend', () => setTimeout(leave, 1200));
+}
+
+function bindRange() {
+	const buttons = $('range').querySelectorAll('button');
+	const set = (r) => {
+		S.range = r;
+		buttons.forEach((b) => b.classList.toggle('on', b.dataset.r === r));
+		try { localStorage.setItem('pactRange', r); } catch (e) {}
+		renderChart();
+	};
+	buttons.forEach((b) => b.addEventListener('click', () => set(b.dataset.r)));
+	let saved = 'all';
+	try { saved = localStorage.getItem('pactRange') || 'all'; } catch (e) {}
+	set(saved);
+}
+
+// ─── celebration ───
+function milestoneFor(v) {
+	let m = 0;
+	for (const x of MILESTONES) if (v >= x) m = x;
+	return m;
+}
+
+function checkMilestone() {
+	const m = milestoneFor(S.total);
+	if (m > S.milestone) {
+		const first = S.milestone === 0 && m > 1000; // don't fire for history on first ever open
+		S.milestone = m;
+		if (!first) celebrate(m);
+	}
+}
+
+function celebrate(m) {
+	const t = $('toast');
+	t.innerHTML = 'Milestone: ' + money(m, 0) + ' in fees<small>since ' + dayLabel(S.feed.genesis * 1000) + '</small>';
+	t.classList.add('on');
+	setTimeout(() => t.classList.remove('on'), 4200);
+	confetti();
+}
+
+function confetti() {
+	if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+	const c = $('confetti');
+	const dpr = window.devicePixelRatio || 1;
+	c.width = innerWidth * dpr;
+	c.height = innerHeight * dpr;
+	const ctx = c.getContext('2d');
+	ctx.scale(dpr, dpr);
+	const colors = ['#0098d4', '#00bfff', '#bb8540', '#4ade80', '#ffffff'];
+	const parts = Array.from({ length: 140 }, () => ({
+		x: innerWidth / 2 + (Math.random() - 0.5) * 80,
+		y: innerHeight * 0.28,
+		vx: (Math.random() - 0.5) * 9,
+		vy: -Math.random() * 11 - 4,
+		r: Math.random() * Math.PI,
+		vr: (Math.random() - 0.5) * 0.3,
+		w: 5 + Math.random() * 5,
+		h: 3 + Math.random() * 4,
+		c: colors[(Math.random() * colors.length) | 0]
+	}));
+	const t0 = performance.now();
+	const frame = (now) => {
+		const k = (now - t0) / 2600;
+		ctx.clearRect(0, 0, innerWidth, innerHeight);
+		for (const p of parts) {
+			p.vy += 0.32;
+			p.vx *= 0.99;
+			p.x += p.vx;
+			p.y += p.vy;
+			p.r += p.vr;
+			ctx.save();
+			ctx.globalAlpha = Math.max(0, 1 - k * k);
+			ctx.translate(p.x, p.y);
+			ctx.rotate(p.r);
+			ctx.fillStyle = p.c;
+			ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+			ctx.restore();
+		}
+		if (k < 1) requestAnimationFrame(frame);
+		else ctx.clearRect(0, 0, innerWidth, innerHeight);
+	};
+	requestAnimationFrame(frame);
+}
+
+// ─── live loop ───
+function setLive(state) {
+	$('live').classList.toggle('on', state === 'LIVE');
+	$('liveLabel').textContent = state;
+}
+
+let polling = false;
+async function poll() {
+	if (polling || document.hidden) return;
+	polling = true;
+	try {
+		const { rows, reached } = await fetchSince(S.newestTs - 90000, reached0());
+		S.lastOk = Date.now();
+		setLive('LIVE');
+		if (!reached) S.gapSince = S.gapSince || Date.now();
+		if (rows.length) {
+			const priced = await price(rows);
+			for (const r of priced) S.seen.add(r.id);
+			const tA = priced[0].ts, tB = priced[priced.length - 1].ts;
+			S.newestTs = Math.max(S.newestTs, tB);
+			// Replay across the next poll window in real arrival order so the
+			// counter ticks at the pace swaps actually landed.
+			priced.forEach((r) => {
+				const delay = priced.length === 1 ? 0 : ((r.ts - tA) / Math.max(1, tB - tA)) * (POLL_MS - 700);
+				setTimeout(() => {
+					apply(r);
+					setOdo(S.total);
+					setGain(S.total);
+					odo.classList.remove('bump');
+					void odo.offsetWidth;
+					odo.classList.add('bump');
+					floatGain(r.fee);
+					pushFeed(r);
+					checkMilestone();
+					scheduleRender();
+				}, delay);
+			});
+		}
+	} catch (e) {
+		setLive('RECONNECTING');
+	} finally {
+		polling = false;
+	}
+}
+// A long background stint can leave more than one page to catch up on.
+const reached0 = () => (Date.now() - S.lastOk > 60000 ? 30 : 4);
+
+async function boot() {
+	let p = JSON.parse($('payload').textContent);
+	if (typeof p === 'string') {
+		// Opened outside Scriptable (browser preview): fetch the feed ourselves.
+		const q = new URLSearchParams(location.search);
+		const feed = await getJSON(q.get('feed') || FEED_URL);
+		const base = q.get('base') ? { total: Number(q.get('base')), at: Date.now() - 3 * 3600e3 } : null;
+		p = { feed, base, milestone: Number(q.get('milestone') || 0) };
+	}
+	S.feed = p.feed;
+	S.base = p.base;
+	S.milestone = p.milestone || 0;
+	S.pools = Object.assign({}, p.feed.pools);
+	for (const r of p.feed.series) S.hours.set(r[0], [r[1], r[2], r[3]]);
+	S.total = p.feed.total;
+	S.proto = p.feed.protocol;
+	S.newestTs = p.feed.cursorTs;
+	S.recent = p.feed.recent.slice();
+	for (const r of S.recent) S.seen.add(r.id);
+
+	const start = Math.min(gainBase(), S.total);
+	setOdo(start);
+	setGain(start);
+	renderStatic();
+	renderTiles();
+	renderFeed();
+	renderFoot();
+	bindRange();
+	bindChart();
+	bindBars();
+	renderBars();
+
+	// Catch up from the feed's cursor to now, then run the opening count-up.
+	try {
+		const { rows, reached } = await fetchSince(S.feed.cursorTs + 1, 40);
+		if (!reached) S.gapSince = rows.length ? rows[0].ts : Date.now();
+		const priced = await price(rows);
+		for (const r of priced) {
+			S.seen.add(r.id);
+			apply(r);
+			S.newestTs = Math.max(S.newestTs, r.ts);
+		}
+		S.lastOk = Date.now();
+	} catch (e) {
+		S.gapSince = Date.now();
+	}
+	S.ready = true;
+	renderStatic();
+	renderTiles();
+	renderChart();
+	renderBars();
+	renderFeed();
+	renderFoot();
+	setLive('LIVE');
+	countTo(start, S.total, S.total - start > 0.01 ? 1900 : 300, () => {
+		checkMilestone();
+		setInterval(poll, POLL_MS);
+	});
+	setInterval(() => {
+		document.querySelectorAll('.ago[data-ts]').forEach((el) => (el.textContent = ago(Number(el.dataset.ts))));
+		renderFoot();
+	}, 1000);
+	addEventListener('resize', scheduleRender);
+}
+
+boot().catch((e) => {
+	setLive('OFFLINE');
+	$('foot').innerHTML = '<p class="warn">Could not load fee data: ' + esc(e.message || e) + '</p>';
+});
+</script>
+</body>
+</html>
