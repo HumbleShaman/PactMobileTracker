@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Pact Fees</title>
+<link rel="icon" type="image/png" href="pact-icon.png" />
 <style>
 	:root {
 		--bg: #0a0b12;
@@ -112,10 +113,22 @@
 	footer p + p { margin-top: 4px; }
 	.warn { color: var(--warn); }
 
-	#toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 14px); transform: translate(-50%, -140%); transition: transform 0.45s cubic-bezier(0.25, 1, 0.5, 1); background: var(--overlay); border: 1px solid rgba(74, 222, 128, 0.35); color: var(--bright); padding: 10px 16px; border-radius: 12px; font-weight: 600; font-size: 14px; white-space: nowrap; z-index: 10; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+	#toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 14px); transform: translate(-50%, calc(-100% - 48px)); transition: transform 0.45s cubic-bezier(0.25, 1, 0.5, 1); background: var(--overlay); border: 1px solid rgba(74, 222, 128, 0.35); color: var(--bright); padding: 10px 16px; border-radius: 12px; font-weight: 600; font-size: 14px; white-space: nowrap; z-index: 10; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
 	#toast.on { transform: translate(-50%, 0); }
 	#toast small { display: block; font-weight: 500; font-size: 11px; color: var(--muted); }
 	#confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9; }
+
+	/* Desktop: hero + charts on the left, live swaps docked on the right. */
+	@media (min-width: 980px) {
+		body { max-width: 1280px; padding: 28px 40px 36px; }
+		.layout { display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 20px; align-items: start; }
+		.col-side { position: sticky; top: 20px; }
+		.col-side .card { max-height: calc(100vh - 40px); overflow-y: auto; margin-bottom: 0; }
+		.hero { margin-bottom: 26px; }
+		.odo { font-size: 88px; }
+		.tv { font-size: 24px; }
+		.tile { padding: 14px 16px; }
+	}
 
 	@media (prefers-reduced-motion: reduce) {
 		.odo .col { transition: none; }
@@ -129,6 +142,8 @@
 	<div class="since" id="since"></div>
 </header>
 
+<main class="layout">
+<div class="col-main">
 <section class="hero" id="hero">
 	<div class="caption">Total fees earned</div>
 	<div class="odo num" id="odo" aria-live="off"></div>
@@ -163,10 +178,14 @@
 	<details><summary>Show as table</summary><table id="table"></table></details>
 </section>
 
+</div>
+<aside class="col-side">
 <section class="card">
 	<div class="card-head"><div class="card-title">Live swaps</div><div class="sub" id="feedSub"></div></div>
 	<ul class="feed" id="feed"></ul>
 </section>
+</aside>
+</main>
 
 <footer id="foot"></footer>
 <div id="toast"></div>
@@ -200,6 +219,20 @@ const S = {
 	range: 'all',
 	lastOk: 0
 };
+
+// Opened in a normal browser (not Scriptable): the baseline lives in localStorage.
+const LOCAL_KEY = 'pactTracker.base.v1';
+let standalone = false;
+let shown = 0;
+function loadLocal() {
+	try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || 'null'); } catch (e) { return null; }
+}
+function saveLocal() {
+	if (!standalone || !S.ready) return;
+	try {
+		localStorage.setItem(LOCAL_KEY, JSON.stringify({ total: S.total, at: Date.now(), genesis: S.feed.genesis, milestone: S.milestone }));
+	} catch (e) {}
+}
 
 // Read by the Scriptable host every few seconds → next visit's baseline.
 window.__pactState = () => (S.ready ? { total: S.total, milestone: S.milestone } : null);
@@ -382,6 +415,7 @@ function setOdo(v) {
 		if (col && col.className === 'col') col.style.transform = 'translateY(' + -1.12 * Number(str[i]) + 'em)';
 	}
 	odoText = str;
+	shown = v;
 }
 
 let tween = null;
@@ -471,7 +505,8 @@ let chartPts = [];
 function renderChart() {
 	const svg = $('svg');
 	const W = svg.clientWidth || 340;
-	const H = 190;
+	const H = innerWidth >= 980 ? 270 : 190;
+	svg.setAttribute('height', H);
 	const m = { l: 40, r: 8, t: 12, b: 22 };
 	const now = Date.now() / 1000;
 	const all = cumulative();
@@ -789,6 +824,15 @@ async function poll() {
 			for (const r of priced) S.seen.add(r.id);
 			const tA = priced[0].ts, tB = priced[priced.length - 1].ts;
 			S.newestTs = Math.max(S.newestTs, tB);
+			if (priced.length > 40) {
+				// Back from a while away: settle the backlog in one count-up.
+				const from = S.total;
+				for (const r of priced) apply(r);
+				countTo(from, S.total, 1400, checkMilestone);
+				renderFeed();
+				scheduleRender();
+				return;
+			}
 			// Replay across the next poll window in real arrival order so the
 			// counter ticks at the pace swaps actually landed.
 			priced.forEach((r) => {
@@ -821,9 +865,14 @@ async function boot() {
 	if (typeof p === 'string') {
 		// Opened outside Scriptable (browser preview): fetch the feed ourselves.
 		const q = new URLSearchParams(location.search);
+		standalone = true;
 		const feed = await getJSON(q.get('feed') || FEED_URL);
-		const base = q.get('base') ? { total: Number(q.get('base')), at: Date.now() - 3 * 3600e3 } : null;
-		p = { feed, base, milestone: Number(q.get('milestone') || 0) };
+		const saved = loadLocal();
+		const mine = saved && saved.genesis === feed.genesis ? saved : null;
+		const base = q.get('base')
+			? { total: Number(q.get('base')), at: Date.now() - 3 * 3600e3 }
+			: mine && { total: mine.total, at: mine.at };
+		p = { feed, base, milestone: Number(q.get('milestone') || (mine && mine.milestone) || 0) };
 	}
 	S.feed = p.feed;
 	S.base = p.base;
@@ -879,6 +928,28 @@ async function boot() {
 		renderFoot();
 	}, 1000);
 	addEventListener('resize', scheduleRender);
+
+	// Desktop niceties: running total in the tab title, and "since you last
+	// checked" counts from when you left the tab.
+	setInterval(() => (document.title = money(shown) + ' · Pact fees'), 1000);
+	let leftAt = null;
+	document.addEventListener('visibilitychange', () => {
+		if (document.hidden) {
+			leftAt = { total: S.total, at: Date.now() };
+			saveLocal();
+			return;
+		}
+		if (!leftAt || Date.now() - leftAt.at < 60000) return;
+		// Long gaps: reload so the feed (and counter) rebuild from fresh data;
+		// the saved baseline makes the reopen count up from where you left.
+		if (standalone && Date.now() - leftAt.at > 10 * 60000) return location.reload();
+		S.base = leftAt;
+		renderStatic();
+		setGain(S.total);
+		poll();
+	});
+	addEventListener('pagehide', saveLocal);
+	setInterval(saveLocal, 15000);
 }
 
 boot().catch((e) => {
