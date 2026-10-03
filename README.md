@@ -41,7 +41,7 @@ Optional widget **Parameter** `refresh`: "+$X since …" then counts from that w
 
 - **iOS decides when a widget refreshes**, usually every 5–15 minutes. Widgets can't animate. A glance at the home screen does not force a refresh. The live view is the part that ticks in real time.
 - **USD prices** come from the pact.fi API at the moment of collection. Swaps priced above $5M are treated as pricing glitches and counted as $0 (see `outliers` in feed.json).
-- **GitHub's own cron is slow.** It actually fires every 3–7 hours, not every 5 minutes. While Andrew's PC is on, a Windows scheduled task (`pc/trigger.pyw`, installed by `pc/install-task.ps1`) asks GitHub to run the collector every 5 minutes. When the PC is off, freshness falls back to GitHub's cron. The trigger log is `%LOCALAPPDATA%\PactMobileTracker	rigger.log`.
+- **GitHub's own cron is slow.** It actually fires every 3–7 hours, not every 5 minutes. While Andrew's PC is on, a Windows scheduled task (`pc/trigger.pyw`, installed by `pc/install-task.ps1`) asks GitHub to run the collector every 5 minutes. When the PC is off, freshness falls back to GitHub's cron. The trigger log is `%LOCALAPPDATA%\PactMobileTracker\trigger.log`.
 - **GitHub turns off scheduled workflows** in public repos after 60 days without repo activity. If the numbers ever freeze, open **Actions → collect → Enable workflow**.
 
 ## Development
