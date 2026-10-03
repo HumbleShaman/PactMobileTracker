@@ -375,12 +375,13 @@ const session = { fees: 0, n: 0, best: null, start: Date.now() };
 const LOCAL_KEY = 'pactTracker.base.v1';
 const PREFS_KEY = 'pactTracker.prefs.v1';
 let standalone = false;
+let demoMode = false; // ?demo=1 adds fake fees, so it must never save a baseline
 let shown = 0;
 function loadLocal() {
 	try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || 'null'); } catch (e) { return null; }
 }
 function saveLocal() {
-	if (!standalone || !S.ready) return;
+	if (!standalone || !S.ready || demoMode) return;
 	try {
 		localStorage.setItem(LOCAL_KEY, JSON.stringify({ total: S.total, at: Date.now(), genesis: S.feed.genesis, milestone: S.milestone }));
 	} catch (e) {}
@@ -394,7 +395,7 @@ function savePrefs() {
 }
 
 // Read by the Scriptable host every few seconds → next visit's baseline.
-window.__pactState = () => (S.ready ? { total: S.total, milestone: S.milestone } : null);
+window.__pactState = () => (S.ready && !demoMode ? { total: S.total, milestone: S.milestone } : null);
 
 // ─── formatting ───
 function num(v, dp) {
@@ -1555,6 +1556,7 @@ async function boot() {
 
 /** ?demo=1 — fake fees on a realistic size curve, for previewing the effects. */
 function demo() {
+	demoMode = true;
 	const next = () => {
 		const u = Math.random();
 		const fee = u < 0.015 ? 1 + Math.random() * 6 : u < 0.06 ? 0.25 + Math.random() * 0.6 : Math.pow(10, -3.5 + Math.random() * 2.8);
