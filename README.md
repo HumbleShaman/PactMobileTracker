@@ -4,6 +4,7 @@ A personal iPhone widget that shows Pact swap fees as they build up: total fees 
 
 - **Home screen widgets** (small / medium / large): the running total, **+$X since you last checked**, today's fees, and a chart of fees building up over time.
 - **Lock screen widgets** (rectangular / inline / circular).
+- **On a computer:** https://humbleshaman.github.io/PactMobileTracker/ is the same live view (GitHub Pages), laid out wide. The running total shows in the tab title.
 - **Tap any widget** to open the live view. The total rolls up from where you last left it, each real swap pops in as it lands, and a milestone ($1K, $2.5K, …) sets off confetti.
 
 ## How it works
@@ -40,6 +41,7 @@ Optional widget **Parameter** `refresh`: "+$X since …" then counts from that w
 
 - **iOS decides when a widget refreshes**, usually every 5–15 minutes. Widgets can't animate. A glance at the home screen does not force a refresh. The live view is the part that ticks in real time.
 - **USD prices** come from the pact.fi API at the moment of collection. Swaps priced above $5M are treated as pricing glitches and counted as $0 (see `outliers` in feed.json).
+- **GitHub's own cron is slow.** It actually fires every 3–7 hours, not every 5 minutes. While Andrew's PC is on, a Windows scheduled task (`pc/trigger.pyw`, installed by `pc/install-task.ps1`) asks GitHub to run the collector every 5 minutes. When the PC is off, freshness falls back to GitHub's cron. The trigger log is `%LOCALAPPDATA%\PactMobileTracker	rigger.log`.
 - **GitHub turns off scheduled workflows** in public repos after 60 days without repo activity. If the numbers ever freeze, open **Actions → collect → Enable workflow**.
 
 ## Development
