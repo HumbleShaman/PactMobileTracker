@@ -8,22 +8,29 @@
 <style>
 	:root {
 		--bg: #0a0b12;
-		--surface: #10121c;
-		--raised: #13161f;
+		--raised: rgba(19, 22, 31, 0.88);
 		--overlay: #1e2130;
 		--bright: #ffffff;
 		--text: #c9cbd4;
 		--muted: #7a7f91;
 		--faint: #4a4f61;
-		--hair: rgba(255, 255, 255, 0.06);
+		--hair: rgba(255, 255, 255, 0.07);
 		--total: #0098d4;
 		--proto: #bb8540;
 		--gain: #4ade80;
 		--accent: #00bfff;
+		--accent-hi: #33ccff;
 		--warn: #d9a055;
+		/* reward tiers: tick → coin → nice → big → whale */
+		--t1: #8fdcae;
+		--t2: #4ade80;
+		--t3: #33ccff;
+		--t4: #f2c14e;
+		--t5: #ffd978;
+		--r: 4px;
 	}
 	* { box-sizing: border-box; margin: 0; padding: 0; }
-	html, body { background: var(--bg); color: var(--text); }
+	html { background: var(--bg); color: var(--text); }
 	body {
 		font: 15px/1.4 -apple-system, system-ui, 'Segoe UI', sans-serif;
 		-webkit-font-smoothing: antialiased;
@@ -35,35 +42,97 @@
 		margin: 0 auto;
 		overflow-x: hidden;
 	}
+	button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 	.num { font-family: ui-rounded, -apple-system, system-ui, sans-serif; font-variant-numeric: tabular-nums; }
 
-	.top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+	/* Ambient liquidity ribbons (Pact motif). One composited layer that drifts;
+	   brightens when fees land, and a gold twin flashes for big ones. */
+	.ambient { position: fixed; left: -15%; top: -15%; width: 130%; height: 130%; z-index: -1; pointer-events: none; opacity: 0.38;
+		transition: opacity 1.4s ease; animation: drift 42s ease-in-out infinite alternate; }
+	.ambient.gold { opacity: 0; animation-duration: 55s; }
+	.ambient.lit { opacity: 0.75; transition-duration: 0.12s; }
+	.ambient.gold.lit { opacity: 0.85; }
+	@keyframes drift { from { transform: translate3d(-3%, 2%, 0) scale(1.02); } to { transform: translate3d(3%, -2.5%, 0) scale(1.09); } }
+
+	.top { position: relative; display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; z-index: 20; }
 	.live { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: var(--muted); }
 	.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
-	.live.on .dot { background: var(--gain); animation: pulse 2s ease-out infinite; }
+	.live.on .dot { background: var(--gain); animation: pulse 2.4s ease-out infinite; }
 	.live.on { color: var(--text); }
 	@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.55); } 80%, 100% { box-shadow: 0 0 0 9px rgba(74, 222, 128, 0); } }
+	.top-right { display: flex; align-items: center; gap: 12px; }
 	.since { font-size: 12px; color: var(--muted); }
+	.icon-btn { position: relative; display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 10px; border-radius: 3px;
+		border: 1px solid var(--hair); background: rgba(255, 255, 255, 0.03); color: var(--text); font-size: 12px; font-weight: 600; }
+	.icon-btn svg { width: 17px; height: 17px; }
+	.icon-btn .hint { display: none; color: var(--accent-hi); }
+	.icon-btn.locked { border-color: rgba(0, 191, 255, 0.45); }
+	.icon-btn.locked .hint { display: inline; }
+	.icon-btn.locked svg { color: var(--accent-hi); }
 
-	.hero { position: relative; margin-bottom: 20px; }
+	.pop { position: absolute; right: 0; top: 40px; width: 300px; padding: 14px; border-radius: var(--r); background: #141824;
+		border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55); }
+	.pop::before { content: ''; position: absolute; left: -1px; right: -1px; top: -1px; height: 2px; background: var(--accent); border-radius: var(--r) var(--r) 0 0; }
+	.pop-row { margin-bottom: 12px; }
+	.pop-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+	.pop .seg { width: 100%; }
+	.pop .seg button { flex: 1; }
+	.pop input[type='range'] { width: 100%; accent-color: var(--accent); }
+	.check { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; color: var(--text); line-height: 1.35; cursor: pointer; }
+	.check input { margin-top: 2px; accent-color: var(--accent); }
+	.pv { display: flex; gap: 6px; }
+	.pv button { flex: 1; height: 30px; border-radius: 3px; border: 1px solid var(--hair); background: rgba(255, 255, 255, 0.03); font-size: 12px; font-weight: 600; }
+	.pv button[data-pv='3'] { color: var(--t3); }
+	.pv button[data-pv='4'] { color: var(--t4); }
+	.pv button[data-pv='5'] { color: var(--t5); border-color: rgba(242, 193, 78, 0.35); }
+	.pop-note { font-size: 11px; color: var(--muted); line-height: 1.4; }
+
+	.hero { position: relative; margin-bottom: 18px; }
 	.caption { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
-	.odo { display: flex; align-items: flex-end; font-size: clamp(40px, 12.5vw, 60px); font-weight: 700; color: var(--bright); letter-spacing: -0.02em; white-space: nowrap; }
+	.odo-wrap { position: relative; display: inline-block; overflow: hidden; vertical-align: top; }
+	.odo { display: flex; align-items: flex-end; font-size: clamp(40px, 12.5vw, 60px); font-weight: 700; color: var(--bright); letter-spacing: -0.02em; white-space: nowrap; transform-origin: left bottom; }
 	.odo .c { display: inline-block; height: 1.12em; overflow: hidden; }
-	.odo .col { display: flex; flex-direction: column; transition: transform 0.55s cubic-bezier(0.2, 0.9, 0.25, 1); }
+	.odo .col { display: flex; flex-direction: column; transition: transform 0.6s cubic-bezier(0.2, 0.9, 0.25, 1); }
 	.odo.fast .col { transition-duration: 0.08s; }
 	.odo .col span, .odo .s { display: block; height: 1.12em; line-height: 1.12em; }
 	.odo .sub { font-size: 0.52em; color: var(--muted); margin-bottom: 0.14em; }
-	.odo.bump { animation: bump 0.5s ease-out; }
-	@keyframes bump { 30% { text-shadow: 0 0 22px rgba(0, 191, 255, 0.55); } }
-	.float { position: absolute; right: 4px; top: 30px; font-size: 15px; font-weight: 700; color: var(--gain); pointer-events: none; animation: rise 1.3s ease-out forwards; }
-	@keyframes rise { from { opacity: 0; transform: translateY(8px); } 15% { opacity: 1; } to { opacity: 0; transform: translateY(-34px); } }
+	.odo .c.hit { animation: hit 0.9s ease-out; }
+	@keyframes hit { 0% { color: var(--hit); text-shadow: 0 0 0.35em var(--hit); } 100% { text-shadow: 0 0 0 transparent; } }
+	.odo.punch { animation: punch 0.6s cubic-bezier(0.2, 0.9, 0.25, 1); }
+	@keyframes punch { 30% { transform: scale(1.045); } }
+	.glint { position: absolute; top: 0; bottom: 0; left: -60%; width: 45%; pointer-events: none; opacity: 0;
+		background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.22) 50%, transparent); transform: skewX(-18deg); }
+	.glint.go { animation: glint 0.95s cubic-bezier(0.3, 0.6, 0.3, 1); }
+	@keyframes glint { 0% { left: -60%; opacity: 1; } 100% { left: 125%; opacity: 1; } }
 
-	.gain { display: inline-flex; align-items: baseline; gap: 8px; margin-top: 8px; padding: 6px 12px; border-radius: 8px; background: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.22); }
+	.float { position: absolute; top: 26px; font-weight: 800; pointer-events: none; white-space: nowrap; animation: rise 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+	.float.t1 { font-size: 14px; color: var(--t1); }
+	.float.t2 { font-size: 17px; color: var(--t2); }
+	.float.t3 { font-size: 22px; color: var(--t3); }
+	.float.t4 { font-size: 30px; color: var(--t4); animation-duration: 2.1s; }
+	.float.t5 { font-size: 44px; color: var(--t5); animation-duration: 2.8s; text-shadow: 0 0 24px rgba(242, 193, 78, 0.45); }
+	@keyframes rise { 0% { opacity: 0; transform: translateY(12px) scale(0.92); } 12% { opacity: 1; transform: none; } 70% { opacity: 1; } 100% { opacity: 0; transform: translateY(-52px); } }
+
+	.combo { position: absolute; right: 0; top: -2px; display: inline-flex; align-items: baseline; gap: 5px; padding: 4px 10px; border-radius: 3px;
+		border: 1px solid rgba(51, 204, 255, 0.4); background: rgba(0, 191, 255, 0.08); color: var(--t3); font-size: 11px; font-weight: 800;
+		letter-spacing: 0.1em; opacity: 0; transform: translateY(-6px); transition: opacity 0.25s, transform 0.25s, color 0.25s, border-color 0.25s; }
+	.combo b { font-size: 18px; letter-spacing: 0; }
+	.combo.on { opacity: 1; transform: none; }
+	.combo.bump { animation: cbump 0.32s ease-out; }
+	@keyframes cbump { 40% { transform: scale(1.12); } }
+	.combo.hot { color: var(--t4); border-color: rgba(242, 193, 78, 0.5); background: rgba(242, 193, 78, 0.08); }
+
+	.gain { display: inline-flex; align-items: baseline; gap: 8px; margin-top: 8px; padding: 6px 12px; border-radius: var(--r);
+		background: rgba(74, 222, 128, 0.08); border: 1px solid rgba(74, 222, 128, 0.24); }
 	.gain .gv { font-size: 20px; font-weight: 700; color: var(--gain); }
 	.gain .gl { font-size: 13px; color: var(--text); }
+	.hud { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+	.hud span { font-size: 12px; color: var(--muted); padding: 4px 8px; border: 1px solid var(--hair); border-radius: 3px; background: rgba(255, 255, 255, 0.02); }
+	.hud b { color: var(--bright); font-weight: 700; }
+	.hud b.best { color: var(--t4); }
 
 	.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
-	.tile { background: var(--raised); border: 1px solid var(--hair); border-radius: 10px; padding: 10px 11px; min-width: 0; }
+	.tile { position: relative; background: var(--raised); border: 1px solid var(--hair); border-radius: var(--r); padding: 10px 11px; min-width: 0; }
 	.tl { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: var(--muted); display: flex; align-items: center; gap: 5px; }
 	.tv { font-size: 18px; font-weight: 700; color: var(--bright); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 	.ts { font-size: 11px; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -71,22 +140,23 @@
 	.sw.total { background: var(--total); }
 	.sw.proto { background: var(--proto); }
 
-	.card { background: var(--raised); border: 1px solid var(--hair); border-radius: 12px; padding: 14px 14px 12px; margin-bottom: 12px; }
+	.card { position: relative; background: var(--raised); border: 1px solid var(--hair); border-radius: var(--r); padding: 14px 14px 12px; margin-bottom: 12px; }
+	.card.edge::before { content: ''; position: absolute; left: -1px; right: -1px; top: -1px; height: 2px; background: var(--accent); border-radius: var(--r) var(--r) 0 0; }
 	.card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 	.card-title { font-size: 14px; font-weight: 600; color: var(--bright); }
 	.sub { font-size: 12px; color: var(--muted); }
 	.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 4px; font-size: 12px; color: var(--muted); }
 	.legend span { display: inline-flex; align-items: center; gap: 5px; }
 	.legend b { color: var(--text); font-weight: 600; }
-	.seg { display: flex; background: var(--overlay); border-radius: 8px; padding: 2px; flex: none; }
-	.seg button { font: 600 12px -apple-system, system-ui, sans-serif; color: var(--muted); background: none; border: 0; padding: 6px 10px; border-radius: 6px; }
-	.seg button.on { background: var(--raised); color: var(--bright); }
+	.seg { display: flex; background: var(--overlay); border-radius: 3px; padding: 2px; flex: none; }
+	.seg button { font: 600 12px -apple-system, system-ui, sans-serif; color: var(--muted); padding: 6px 10px; border-radius: 2px; }
+	.seg button.on { background: #2a2f42; color: var(--bright); }
 
 	.chart, .bars { position: relative; touch-action: pan-y; }
 	svg { display: block; width: 100%; overflow: visible; }
 	.axis { font: 10px -apple-system, system-ui, sans-serif; fill: var(--faint); }
 	.grid { stroke: var(--hair); stroke-width: 1; }
-	.tip { position: absolute; top: 0; pointer-events: none; opacity: 0; transition: opacity 0.12s; background: var(--overlay); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 7px 9px; font-size: 12px; color: var(--text); white-space: nowrap; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4); }
+	.tip { position: absolute; top: 0; pointer-events: none; opacity: 0; transition: opacity 0.12s; background: var(--overlay); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--r); padding: 7px 9px; font-size: 12px; color: var(--text); white-space: nowrap; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4); z-index: 3; }
 	.tip.on { opacity: 1; }
 	.tip .tt { color: var(--muted); font-size: 11px; margin-bottom: 3px; }
 	.tip .tr { display: flex; align-items: center; gap: 6px; }
@@ -100,11 +170,20 @@
 	td { text-align: right; padding: 4px 0; border-bottom: 1px solid var(--hair); }
 
 	.feed { list-style: none; }
-	.feed li { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 10px; padding: 8px 6px; margin: 0 -6px; border-radius: 8px; border-bottom: 1px solid var(--hair); }
+	.feed li { --flash: rgba(74, 222, 128, 0.16); display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 10px; padding: 8px 6px; margin: 0 -6px; border-radius: 3px; border-bottom: 1px solid var(--hair); }
 	.feed li:last-child { border-bottom: 0; }
-	.feed li.new { animation: flash 1.6s ease-out; }
-	@keyframes flash { from { background: rgba(74, 222, 128, 0.16); transform: translateY(-6px); } 25% { transform: none; } to { background: transparent; } }
-	.fee { font-size: 15px; font-weight: 700; color: var(--gain); }
+	.feed li.new { animation: flash 1.8s ease-out; }
+	@keyframes flash { from { background: var(--flash); transform: translateY(-6px); } 25% { transform: none; } to { background: transparent; } }
+	.fee { font-size: 15px; font-weight: 700; color: var(--t2); }
+	.feed li.t0 { opacity: 0.5; }
+	.feed li.t0 .fee { color: var(--muted); font-weight: 600; }
+	.feed li.t1 .fee { color: var(--t1); }
+	.feed li.t3 { --flash: rgba(51, 204, 255, 0.18); }
+	.feed li.t3 .fee { color: var(--t3); }
+	.feed li.t4, .feed li.t5 { --flash: rgba(242, 193, 78, 0.24); background: rgba(242, 193, 78, 0.05); box-shadow: inset 2px 0 0 var(--t4); }
+	.feed li.t4 .fee, .feed li.t5 .fee { color: var(--t4); }
+	.feed li.t5 .fee { font-size: 17px; color: var(--t5); }
+	.pill { display: inline-block; margin-left: 6px; padding: 1px 5px; border-radius: 2px; font-size: 9px; font-weight: 800; font-style: normal; letter-spacing: 0.1em; vertical-align: 2px; color: #1a1406; background: var(--t4); }
 	.pair { font-size: 13px; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	.pair small { display: block; font-size: 11px; color: var(--muted); }
 	.ago { font-size: 11px; color: var(--faint); }
@@ -113,10 +192,28 @@
 	footer p + p { margin-top: 4px; }
 	.warn { color: var(--warn); }
 
-	#toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 14px); transform: translate(-50%, calc(-100% - 48px)); transition: transform 0.45s cubic-bezier(0.25, 1, 0.5, 1); background: var(--overlay); border: 1px solid rgba(74, 222, 128, 0.35); color: var(--bright); padding: 10px 16px; border-radius: 12px; font-weight: 600; font-size: 14px; white-space: nowrap; z-index: 10; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+	#toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 14px); transform: translate(-50%, calc(-100% - 48px)); transition: transform 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+		background: #141824; border: 1px solid rgba(74, 222, 128, 0.35); color: var(--bright); padding: 10px 16px; border-radius: var(--r); font-weight: 600; font-size: 14px; white-space: nowrap; z-index: 30; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
 	#toast.on { transform: translate(-50%, 0); }
+	#toast.gold { border-color: rgba(242, 193, 78, 0.5); }
+	#toast.gold b { color: var(--t4); }
 	#toast small { display: block; font-weight: 500; font-size: 11px; color: var(--muted); }
-	#confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9; }
+
+	#whale { position: fixed; left: 50%; top: 42%; z-index: 31; min-width: 300px; padding: 22px 34px 20px; text-align: center; border-radius: var(--r); pointer-events: none;
+		background: rgba(12, 13, 20, 0.94); border: 1px solid rgba(242, 193, 78, 0.45); box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6);
+		opacity: 0; transform: translate(-50%, -50%) scale(0.86); transition: opacity 0.3s ease, transform 0.5s cubic-bezier(0.2, 0.9, 0.25, 1); }
+	#whale::before { content: ''; position: absolute; left: -1px; right: -1px; top: -1px; height: 2px; background: var(--t4); border-radius: var(--r) var(--r) 0 0; }
+	#whale.on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+	#whale .wl { font-size: 12px; font-weight: 800; letter-spacing: 0.3em; color: var(--t4); }
+	#whale .wv { margin-top: 6px; font-size: 68px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; color: var(--t5); }
+	#whale .ws { margin-top: 10px; font-size: 13px; color: var(--muted); }
+
+	#edge { position: fixed; inset: 0; pointer-events: none; z-index: 29; opacity: 0; box-shadow: inset 0 0 160px 12px var(--edge, rgba(242, 193, 78, 0.5)); }
+	#edge.go { animation: edge 1.8s ease-out; }
+	@keyframes edge { 0% { opacity: 0; } 10% { opacity: 1; } 100% { opacity: 0; } }
+	#fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 28; }
+	.shake { animation: shake 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+	@keyframes shake { 15% { transform: translate(-3px, 1px); } 30% { transform: translate(3px, -2px); } 45% { transform: translate(-2px, 2px); } 60% { transform: translate(2px, -1px); } 80% { transform: translate(-1px, 1px); } }
 
 	/* Desktop: hero + charts on the left, live swaps docked on the right. */
 	@media (min-width: 980px) {
@@ -124,30 +221,74 @@
 		.layout { display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 20px; align-items: start; }
 		.col-side { position: sticky; top: 20px; }
 		.col-side .card { max-height: calc(100vh - 40px); overflow-y: auto; margin-bottom: 0; }
-		.hero { margin-bottom: 26px; }
-		.odo { font-size: 88px; }
+		.hero { margin-bottom: 24px; }
+		.odo { font-size: 92px; }
 		.tv { font-size: 24px; }
 		.tile { padding: 14px 16px; }
+		#whale .wv { font-size: 96px; }
 	}
 
 	@media (prefers-reduced-motion: reduce) {
 		.odo .col { transition: none; }
-		.float, .feed li.new, .live.on .dot { animation: none; }
+		.ambient, .float, .feed li.new, .live.on .dot, .glint.go, .shake, .odo.punch { animation: none; }
 	}
 </style>
 </head>
 <body>
+<svg class="ambient" id="ambient" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+	<defs>
+		<linearGradient id="a1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#00bfff" stop-opacity="0"/><stop offset=".55" stop-color="#00bfff" stop-opacity=".55"/><stop offset="1" stop-color="#33ccff" stop-opacity="0"/></linearGradient>
+		<linearGradient id="a2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#687596" stop-opacity="0"/><stop offset=".5" stop-color="#5fa8d8" stop-opacity=".42"/><stop offset="1" stop-color="#687596" stop-opacity="0"/></linearGradient>
+		<filter id="ab" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="12"/></filter>
+	</defs>
+	<path d="M-100 700 C 420 820, 980 500, 1720 640" fill="none" stroke="url(#a1)" stroke-width="8" filter="url(#ab)"/>
+	<path d="M-100 540 C 500 760, 1100 360, 1720 470" fill="none" stroke="url(#a2)" stroke-width="6" filter="url(#ab)"/>
+	<path d="M-100 260 C 460 420, 1140 160, 1720 330" fill="none" stroke="url(#a2)" stroke-width="5" filter="url(#ab)"/>
+</svg>
+<svg class="ambient gold" id="ambientGold" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+	<defs>
+		<linearGradient id="g1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f2c14e" stop-opacity="0"/><stop offset=".5" stop-color="#f2c14e" stop-opacity=".6"/><stop offset="1" stop-color="#ffd978" stop-opacity="0"/></linearGradient>
+		<filter id="gb" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="14"/></filter>
+	</defs>
+	<path d="M-100 620 C 460 780, 1060 420, 1720 560" fill="none" stroke="url(#g1)" stroke-width="10" filter="url(#gb)"/>
+	<path d="M-100 360 C 520 520, 1100 220, 1720 380" fill="none" stroke="url(#g1)" stroke-width="7" filter="url(#gb)"/>
+</svg>
+
 <header class="top">
 	<div class="live" id="live"><span class="dot"></span><span id="liveLabel">SYNCING</span></div>
-	<div class="since" id="since"></div>
+	<div class="top-right">
+		<span class="since" id="since"></span>
+		<button class="icon-btn" id="sndBtn" aria-label="Sound and alerts" aria-expanded="false" aria-controls="pop">
+			<svg id="sndIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
+			<span class="hint">Tap for sound</span>
+		</button>
+		<div class="pop" id="pop" hidden>
+			<div class="pop-row">
+				<div class="pop-label">Sound</div>
+				<div class="seg" id="sndMode"><button data-m="off">Off</button><button data-m="big">Big</button><button data-m="coins">Coins</button><button data-m="all">All</button></div>
+			</div>
+			<div class="pop-row">
+				<div class="pop-label">Volume</div>
+				<input type="range" id="vol" min="0" max="1" step="0.05" aria-label="Volume" />
+			</div>
+			<label class="pop-row check" id="alertsRow" hidden><input type="checkbox" id="alerts" /> Desktop alert for fees of $0.25+ while this tab is in the background</label>
+			<div class="pop-row">
+				<div class="pop-label">Preview</div>
+				<div class="pv"><button data-pv="2">Coin</button><button data-pv="3">Nice</button><button data-pv="4">Big</button><button data-pv="5">Whale</button></div>
+			</div>
+			<p class="pop-note">Big = fees of $0.25+ · Coins = $0.01+ · All = $0.001+. Sound keeps going while the tab is in the background.</p>
+		</div>
+	</div>
 </header>
 
-<main class="layout">
+<main class="layout" id="layout">
 <div class="col-main">
 <section class="hero" id="hero">
 	<div class="caption">Total fees earned</div>
-	<div class="odo num" id="odo" aria-live="off"></div>
-	<div class="gain"><span class="gv num" id="gainVal">+$0.00</span><span class="gl" id="gainLabel"></span></div>
+	<div class="combo num" id="combo"><b id="comboN">×3</b>COMBO</div>
+	<div class="odo-wrap"><div class="odo num" id="odo" aria-live="off"></div><div class="glint" id="glint"></div></div>
+	<div><div class="gain"><span class="gv num" id="gainVal">+$0.00</span><span class="gl" id="gainLabel"></span></div></div>
+	<div class="hud" id="hud"></div>
 </section>
 
 <section class="tiles">
@@ -180,7 +321,7 @@
 
 </div>
 <aside class="col-side">
-<section class="card">
+<section class="card edge">
 	<div class="card-head"><div class="card-title">Live swaps</div><div class="sub" id="feedSub"></div></div>
 	<ul class="feed" id="feed"></ul>
 </section>
@@ -189,7 +330,9 @@
 
 <footer id="foot"></footer>
 <div id="toast"></div>
-<canvas id="confetti"></canvas>
+<div id="whale"><div class="wl">WHALE FEE</div><div class="wv num" id="whaleVal"></div><div class="ws" id="whaleSub"></div></div>
+<div id="edge"></div>
+<canvas id="fx"></canvas>
 
 <script id="payload" type="application/json">"__PAYLOAD__"</script>
 <script>
@@ -201,7 +344,14 @@ const FEED_URL = 'https://raw.githubusercontent.com/HumbleShaman/PactMobileTrack
 const MAX_SWAP_USD = 5e6; // mirrors collector/fees.mjs
 const POLL_MS = 5000;
 const MILESTONES = [10, 25, 50, 100, 250, 500, 1e3, 2.5e3, 5e3, 1e4, 2.5e4, 5e4, 1e5, 2.5e5, 5e5, 1e6, 2.5e6, 5e6, 1e7];
+// Per-swap fee tiers, calibrated on real Pact flow (Oct 2026: median fee $0.002,
+// p99 $0.21, ~4 swaps/day pay $1+). Index = tier.
+const TIER_MIN = [0, 0.001, 0.01, 0.05, 0.25, 1];
+const TIER_NAME = ['dust', 'tick', 'coin', 'nice', 'big', 'whale'];
+const TIER_COLOR = ['#7a7f91', '#8fdcae', '#4ade80', '#33ccff', '#f2c14e', '#ffd978'];
+const MODE_MIN_TIER = { off: 99, big: 4, coins: 2, all: 1 };
 const $ = (id) => document.getElementById(id);
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const S = {
 	feed: null,
@@ -219,9 +369,11 @@ const S = {
 	range: 'all',
 	lastOk: 0
 };
+const session = { fees: 0, n: 0, best: null, start: Date.now() };
 
 // Opened in a normal browser (not Scriptable): the baseline lives in localStorage.
 const LOCAL_KEY = 'pactTracker.base.v1';
+const PREFS_KEY = 'pactTracker.prefs.v1';
 let standalone = false;
 let shown = 0;
 function loadLocal() {
@@ -232,6 +384,13 @@ function saveLocal() {
 	try {
 		localStorage.setItem(LOCAL_KEY, JSON.stringify({ total: S.total, at: Date.now(), genesis: S.feed.genesis, milestone: S.milestone }));
 	} catch (e) {}
+}
+const prefs = (() => {
+	const d = { mode: 'all', volume: 0.6, alerts: false };
+	try { return Object.assign(d, JSON.parse(localStorage.getItem(PREFS_KEY) || '{}')); } catch (e) { return d; }
+})();
+function savePrefs() {
+	try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (e) {}
 }
 
 // Read by the Scriptable host every few seconds → next visit's baseline.
@@ -267,6 +426,11 @@ function ago(ms) {
 	return Math.floor(s / 3600) + 'h';
 }
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+function tierOf(fee) {
+	let t = 0;
+	for (let i = 1; i < TIER_MIN.length; i++) if (fee >= TIER_MIN[i]) t = i;
+	return t;
+}
 
 // ─── fee math (mirrors collector/fees.mjs) ───
 async function getJSON(url) {
@@ -364,6 +528,15 @@ function sums() {
 	return { today, todayProto, day, dayProto, daySwaps };
 }
 
+/** Fees per hour over roughly the last 60 minutes (current hour + the tail of the previous one). */
+function pace() {
+	const nowS = Date.now() / 1000;
+	const h = Math.floor(nowS / 3600) * 3600;
+	const cur = (S.hours.get(h) || [0])[0];
+	const prev = (S.hours.get(h - 3600) || [0])[0];
+	return cur + prev * (1 - (nowS - h) / 3600);
+}
+
 /** Cumulative [tEndSec, total, proto] points from genesis. */
 function cumulative() {
 	const hourlyFrom = S.feed.hourlyFrom || 0;
@@ -379,15 +552,237 @@ function cumulative() {
 	return pts;
 }
 
+// ─── sound: synthesized with Web Audio, nothing to download ───
+const Sound = (() => {
+	let ctx = null, master = null, verb = null, lastLow = 0;
+	function init() {
+		if (ctx) return ctx;
+		const AC = window.AudioContext || window.webkitAudioContext;
+		if (!AC) return null;
+		ctx = new AC();
+		const comp = ctx.createDynamicsCompressor();
+		comp.threshold.value = -16;
+		comp.ratio.value = 5;
+		master = ctx.createGain();
+		master.gain.value = prefs.volume;
+		master.connect(comp);
+		comp.connect(ctx.destination);
+		// Small airy room from decaying noise, so chimes ring instead of click.
+		verb = ctx.createConvolver();
+		const len = Math.floor(ctx.sampleRate * 1.8);
+		const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+		for (let ch = 0; ch < 2; ch++) {
+			const d = buf.getChannelData(ch);
+			for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.4);
+		}
+		verb.buffer = buf;
+		const wet = ctx.createGain();
+		wet.gain.value = 0.28;
+		verb.connect(wet);
+		wet.connect(master);
+		return ctx;
+	}
+	const ready = () => !!ctx && ctx.state === 'running';
+	function unlock() {
+		const c = init();
+		if (c && c.state !== 'running') c.resume().then(updateSoundUi, () => {});
+	}
+	function tone(o) {
+		const at = ctx.currentTime + (o.t || 0);
+		const dur = o.dur || 0.3;
+		const osc = ctx.createOscillator();
+		osc.type = o.type || 'sine';
+		osc.frequency.setValueAtTime(o.f, at);
+		if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, at + dur);
+		if (o.detune) osc.detune.value = o.detune;
+		const g = ctx.createGain();
+		g.gain.setValueAtTime(0.0001, at);
+		g.gain.exponentialRampToValueAtTime(o.vol || 0.1, at + (o.attack || 0.004));
+		g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+		osc.connect(g);
+		g.connect(master);
+		if (o.wet !== 0) {
+			const s = ctx.createGain();
+			s.gain.value = o.wet == null ? 0.35 : o.wet;
+			g.connect(s);
+			s.connect(verb);
+		}
+		osc.start(at);
+		osc.stop(at + dur + 0.05);
+	}
+	// Bell: inharmonic partials decay at different rates.
+	function bell(f, t, vol, dur) {
+		[[1, 1], [2.76, 0.45], [5.4, 0.22], [8.93, 0.1]].forEach(([m, a], i) =>
+			tone({ f: f * m, t, vol: vol * a, dur: dur / (1 + i * 0.6), wet: 0.5 }));
+	}
+	function noise(t, dur, vol, freq) {
+		const at = ctx.currentTime + t;
+		const len = Math.floor(ctx.sampleRate * dur);
+		const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+		const d = buf.getChannelData(0);
+		for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+		const src = ctx.createBufferSource();
+		src.buffer = buf;
+		const bp = ctx.createBiquadFilter();
+		bp.type = 'bandpass';
+		bp.frequency.value = freq;
+		bp.Q.value = 1.4;
+		const g = ctx.createGain();
+		g.gain.setValueAtTime(vol, at);
+		g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+		src.connect(bp);
+		bp.connect(g);
+		g.connect(master);
+		src.start(at);
+	}
+	const C6 = 1046.5;
+	const kinds = {
+		tick(p) { tone({ f: 2093 * p, dur: 0.07, type: 'triangle', vol: 0.05, wet: 0.12 }); },
+		coin(p) {
+			tone({ f: 988 * p, dur: 0.09, type: 'square', vol: 0.035, wet: 0.1 });
+			tone({ f: 1319 * p, t: 0.075, dur: 0.42, type: 'square', vol: 0.035, wet: 0.3 });
+			tone({ f: 1319 * p, t: 0.075, dur: 0.5, type: 'sine', vol: 0.08 });
+		},
+		nice(p) {
+			[1319, 1661, 1976, 2637].forEach((f, i) => tone({ f: f * p, t: i * 0.055, dur: 0.5, type: 'triangle', vol: 0.09 }));
+			tone({ f: 3951 * p, t: 0.22, dur: 0.6, vol: 0.03, wet: 0.7 });
+		},
+		big() {
+			noise(0, 0.06, 0.25, 3800); // the "ka"
+			tone({ f: 110, to: 55, dur: 0.3, vol: 0.25, wet: 0 }); // thump
+			[C6, C6 * 1.26, C6 * 1.5, C6 * 2].forEach((f, i) => bell(f, 0.06 + i * 0.012, 0.12, 1.5)); // "ching"
+			[2093, 2637, 3136, 4186].forEach((f, i) => tone({ f, t: 0.35 + i * 0.07, dur: 0.4, type: 'triangle', vol: 0.04, wet: 0.6 }));
+		},
+		whale(scale) {
+			const s = Math.min(1.6, 1 + Math.log10(Math.max(1, scale)) * 0.4);
+			tone({ f: 70, to: 35, dur: 0.9, vol: 0.32, wet: 0 }); // sub drop
+			noise(0, 0.5, 0.08, 6000); // air
+			[523, 659, 784, 1047, 1319, 1568, 2093].forEach((f, i) => tone({ f, t: i * 0.06, dur: 0.35, type: 'triangle', vol: 0.09 }));
+			const chord = [523, 659, 784, 1047];
+			chord.forEach((f) => {
+				tone({ f, t: 0.42, dur: 2.2 * s, type: 'sawtooth', vol: 0.025, detune: 7, wet: 0.6 });
+				tone({ f, t: 0.42, dur: 2.2 * s, type: 'sawtooth', vol: 0.025, detune: -7, wet: 0.6 });
+				bell(f * 2, 0.42, 0.08, 2.4 * s);
+			});
+			for (let i = 0; i < 14; i++) tone({ f: 2600 + Math.random() * 2600, t: 0.5 + Math.random() * 1.6 * s, dur: 0.25, vol: 0.025, wet: 0.8 });
+		},
+		milestone() {
+			[523, 659, 784, 1047].forEach((f, i) => bell(f, i * 0.12, 0.1, 1.2));
+			[1047, 1319, 1568, 2093].forEach((f) => bell(f, 0.55, 0.09, 2.2));
+		}
+	};
+	function play(kind, p, scale) {
+		if (!ready() || prefs.mode === 'off') return;
+		master.gain.value = prefs.volume;
+		// Keep fast bot bursts from smearing into noise.
+		if (kind === 'tick' || kind === 'coin') {
+			const now = performance.now();
+			if (now - lastLow < 70) return;
+			lastLow = now;
+		}
+		kinds[kind](p || 1, scale || 1);
+	}
+	/** Rapid rising ticks over `ms` (the opening/return count-up), ending in a chime sized by `tier`. */
+	function countUp(ms, tier) {
+		if (!ready() || prefs.mode === 'off' || ms < 300) return;
+		const n = Math.min(40, Math.floor(ms / 55));
+		for (let i = 0; i < n; i++) {
+			const k = i / n;
+			const t = (1 - Math.pow(1 - k, 1 / 3)) * (ms / 1000); // follow the ease-out curve
+			tone({ f: 1400 * Math.pow(2, k * 0.9), t, dur: 0.05, type: 'triangle', vol: 0.03, wet: 0.08 });
+		}
+		const end = ['tick', 'tick', 'coin', 'nice', 'big', 'whale'][tier] || 'tick';
+		setTimeout(() => kinds[end](1, 1), ms);
+	}
+	return { unlock, ready, play, countUp, init };
+})();
+
+// ─── particles ───
+const FX = (() => {
+	const c = $('fx');
+	const g = c.getContext('2d');
+	let parts = [];
+	let raf = 0;
+	function size() {
+		const dpr = Math.min(2, window.devicePixelRatio || 1);
+		c.width = innerWidth * dpr;
+		c.height = innerHeight * dpr;
+		g.setTransform(dpr, 0, 0, dpr, 0, 0);
+	}
+	size();
+	addEventListener('resize', size);
+	function loop() {
+		const now = performance.now();
+		g.clearRect(0, 0, innerWidth, innerHeight);
+		parts = parts.filter((p) => now - p.born < p.life);
+		for (const p of parts) {
+			const k = (now - p.born) / p.life;
+			p.vy += p.g;
+			p.vx *= p.drag;
+			p.vy *= p.drag;
+			p.x += p.vx;
+			p.y += p.vy;
+			p.r += p.vr;
+			g.globalAlpha = Math.max(0, 1 - Math.pow(k, 2.4));
+			if (p.kind === 'spark') {
+				g.fillStyle = p.c;
+				g.beginPath();
+				g.arc(p.x, p.y, p.s * (1 - k * 0.6), 0, 6.283);
+				g.fill();
+			} else if (p.kind === 'coin') {
+				const w = Math.max(0.12, Math.abs(Math.cos(p.r))) * p.s;
+				g.fillStyle = '#c8901f';
+				g.beginPath();
+				g.ellipse(p.x, p.y, w, p.s, 0, 0, 6.283);
+				g.fill();
+				g.fillStyle = '#ffd978';
+				g.beginPath();
+				g.ellipse(p.x - w * 0.12, p.y - p.s * 0.1, w * 0.72, p.s * 0.72, 0, 0, 6.283);
+				g.fill();
+			} else {
+				g.save();
+				g.translate(p.x, p.y);
+				g.rotate(p.r);
+				g.fillStyle = p.c;
+				g.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2);
+				g.restore();
+			}
+		}
+		g.globalAlpha = 1;
+		raf = parts.length ? requestAnimationFrame(loop) : 0;
+	}
+	function burst(kind, x, y, n, colors) {
+		if (REDUCED || document.hidden) return;
+		const now = performance.now();
+		for (let i = 0; i < n; i++) {
+			const p = { kind, x, y, born: now, r: Math.random() * 6.28, c: colors[(Math.random() * colors.length) | 0] };
+			if (kind === 'spark') {
+				const a = Math.random() * 6.283, v = 2 + Math.random() * 5;
+				Object.assign(p, { vx: Math.cos(a) * v, vy: Math.sin(a) * v - 1, g: 0.06, drag: 0.95, vr: 0, s: 1.5 + Math.random() * 2, life: 550 + Math.random() * 450 });
+			} else if (kind === 'coin') {
+				const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.2, v = 6 + Math.random() * 7;
+				Object.assign(p, { vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: 0.34, drag: 0.992, vr: 0.18 + Math.random() * 0.25, s: 5 + Math.random() * 5, life: 1700 + Math.random() * 700 });
+			} else {
+				Object.assign(p, { vx: (Math.random() - 0.5) * 11, vy: -Math.random() * 12 - 4, g: 0.3, drag: 0.99, vr: (Math.random() - 0.5) * 0.3, s: 7 + Math.random() * 6, life: 2600 });
+			}
+			parts.push(p);
+		}
+		if (!raf) raf = requestAnimationFrame(loop);
+	}
+	return { burst };
+})();
+
 // ─── odometer ───
 const odo = $('odo');
 let odoText = '';
 function odoString(v) {
 	return '$' + num(v, 4);
 }
-function setOdo(v) {
+/** Render v; with `hitTier`, digits that changed flash in that tier's colour. */
+function setOdo(v, hitTier) {
 	const str = odoString(v);
 	const dot = str.indexOf('.');
+	const prev = odoText;
 	if (str.length !== odoText.length) {
 		odo.innerHTML = '';
 		for (let i = 0; i < str.length; i++) {
@@ -412,7 +807,15 @@ function setOdo(v) {
 	const kids = odo.children;
 	for (let i = 0; i < str.length; i++) {
 		const col = kids[i].firstChild;
-		if (col && col.className === 'col') col.style.transform = 'translateY(' + -1.12 * Number(str[i]) + 'em)';
+		if (!col || col.className !== 'col') continue;
+		col.style.transform = 'translateY(' + -1.12 * Number(str[i]) + 'em)';
+		if (hitTier != null && prev.length === str.length && prev[i] !== str[i]) {
+			const c = kids[i];
+			c.style.setProperty('--hit', TIER_COLOR[Math.max(2, hitTier)]);
+			c.classList.remove('hit');
+			void c.offsetWidth;
+			c.classList.add('hit');
+		}
 	}
 	odoText = str;
 	shown = v;
@@ -445,27 +848,174 @@ function setGain(shownTotal) {
 	$('gainVal').textContent = '+' + money(d, d < 10 ? 4 : 2);
 }
 
-let lastFloat = 0, floatAcc = 0, floatTimer = null;
-function floatGain(fee) {
-	floatAcc += fee;
-	const flush = () => {
-		floatTimer = null;
-		if (floatAcc <= 0) return;
-		const el = document.createElement('div');
-		el.className = 'float num';
-		el.textContent = plusFee(floatAcc);
-		$('hero').appendChild(el);
-		setTimeout(() => el.remove(), 1400);
-		floatAcc = 0;
-		lastFloat = Date.now();
-	};
-	if (!floatTimer) floatTimer = setTimeout(flush, Math.max(0, 450 - (Date.now() - lastFloat)));
+// ─── rewards ───
+const combo = { n: 0, last: 0 };
+let comboTimer = null;
+function bumpCombo() {
+	const now = Date.now();
+	combo.n = now - combo.last < 9000 ? combo.n + 1 : 1;
+	combo.last = now;
+	const el = $('combo');
+	if (combo.n >= 3) {
+		$('comboN').textContent = '×' + combo.n;
+		el.classList.add('on');
+		el.classList.toggle('hot', combo.n >= 10);
+		el.classList.remove('bump');
+		void el.offsetWidth;
+		el.classList.add('bump');
+	}
+	clearTimeout(comboTimer);
+	comboTimer = setTimeout(() => {
+		combo.n = 0;
+		el.classList.remove('on', 'hot');
+	}, 9000);
+}
+/** Combos raise the pitch a semitone per hit, up to an octave. */
+const comboPitch = () => Math.pow(2, Math.min(Math.max(combo.n - 1, 0), 12) / 12);
+
+function odoAnchor() {
+	const r = odo.getBoundingClientRect();
+	return { x: r.right - 12, y: r.top + r.height * 0.45 };
+}
+
+function floatAt(text, tier) {
+	if (document.hidden) return;
+	const hero = $('hero');
+	const hr = hero.getBoundingClientRect();
+	const or = odo.getBoundingClientRect();
+	const el = document.createElement('div');
+	el.className = 'float num t' + tier;
+	el.textContent = text;
+	const room = hr.right - or.right;
+	if (room > 140) el.style.left = or.right - hr.left + 14 + Math.random() * 30 + 'px';
+	else el.style.right = 4 + Math.random() * 40 + 'px';
+	hero.appendChild(el);
+	setTimeout(() => el.remove(), tier >= 5 ? 2900 : tier >= 4 ? 2200 : 1600);
+}
+
+let tickAcc = 0, tickTimer = null;
+function floatTick(fee) {
+	// Small fees merge into one float every ~0.5s so bot bursts stay readable.
+	tickAcc += fee;
+	if (tickTimer) return;
+	tickTimer = setTimeout(() => {
+		tickTimer = null;
+		floatAt(plusFee(tickAcc), tierOf(tickAcc) >= 2 ? 2 : 1);
+		tickAcc = 0;
+	}, 450);
+}
+
+function flashAmbient(gold) {
+	const el = $(gold ? 'ambientGold' : 'ambient');
+	el.classList.add('lit');
+	setTimeout(() => el.classList.remove('lit'), gold ? 900 : 380);
+}
+
+function edgeGlow(color) {
+	const el = $('edge');
+	el.style.setProperty('--edge', color);
+	el.classList.remove('go');
+	void el.offsetWidth;
+	el.classList.add('go');
+}
+
+function retrigger(el, cls) {
+	el.classList.remove(cls);
+	void el.offsetWidth;
+	el.classList.add(cls);
+}
+
+let toastTimer = null;
+function toast(html, gold, ms) {
+	const t = $('toast');
+	t.innerHTML = html;
+	t.classList.toggle('gold', !!gold);
+	t.classList.add('on');
+	clearTimeout(toastTimer);
+	toastTimer = setTimeout(() => t.classList.remove('on'), ms || 3800);
+}
+
+let whaleTimer = null;
+function whaleBanner(r) {
+	$('whaleVal').textContent = '+' + money(r.fee, 2);
+	$('whaleSub').textContent = r.a + ' → ' + r.b + ' · ' + money(r.usd) + ' swap';
+	const w = $('whale');
+	w.classList.add('on');
+	clearTimeout(whaleTimer);
+	whaleTimer = setTimeout(() => w.classList.remove('on'), 3200);
+}
+
+function notify(r) {
+	if (!prefs.alerts || !('Notification' in window) || Notification.permission !== 'granted') return;
+	try {
+		new Notification((tierOf(r.fee) >= 5 ? 'Whale fee ' : 'Big fee ') + '+' + money(r.fee, 2), {
+			body: r.a + ' → ' + r.b + ' · ' + money(r.usd) + ' swap · total ' + money(S.total),
+			icon: 'pact-icon.png',
+			silent: true
+		});
+	} catch (e) {}
+}
+
+let titleFlash = null;
+/** The celebration for one fee, scaled to its tier. Pass `preview` to leave stats alone. */
+function reward(r, preview) {
+	const t = tierOf(r.fee);
+	if (!preview) {
+		session.fees += r.fee;
+		session.n += 1;
+		if (!session.best || r.fee > session.best.fee) session.best = r;
+		renderHud();
+	}
+	if (t >= 1) bumpCombo();
+	if (t >= MODE_MIN_TIER[prefs.mode]) Sound.play(TIER_NAME[t], t <= 2 ? comboPitch() : 1, r.fee);
+
+	if (document.hidden) {
+		if (t >= 2) titleFlash = { text: plusFee(r.fee), until: Date.now() + 8000 };
+		if (t >= 4) notify(r);
+		return;
+	}
+	if (t === 0) return;
+	if (t === 1) return floatTick(r.fee);
+	floatAt(plusFee(r.fee), t);
+	flashAmbient(false);
+	const a = odoAnchor();
+	if (t >= 3) {
+		retrigger($('glint'), 'go');
+		FX.burst('spark', a.x, a.y, t >= 4 ? 34 : 16, [TIER_COLOR[t], '#ffffff']);
+	}
+	if (t >= 4) {
+		retrigger(odo, 'punch');
+		flashAmbient(true);
+		edgeGlow(t >= 5 ? 'rgba(255, 217, 120, 0.6)' : 'rgba(242, 193, 78, 0.42)');
+		FX.burst('coin', a.x, a.y, t >= 5 ? 70 : 28, ['#f2c14e']);
+	}
+	if (t === 4) toast('Big fee <b class="num">+' + money(r.fee, 2) + '</b><small>' + esc(r.a) + ' → ' + esc(r.b) + ' · ' + money(r.usd) + ' swap</small>', true);
+	if (t >= 5) {
+		whaleBanner(r);
+		FX.burst('confetti', innerWidth / 2, innerHeight * 0.35, 120, ['#f2c14e', '#ffd978', '#00bfff', '#33ccff', '#ffffff']);
+		if (!REDUCED) retrigger($('layout'), 'shake');
+	}
+}
+
+/** Example swap for the preview buttons. */
+function sampleSwap(tier) {
+	const fee = [0.0004, 0.004, 0.024, 0.12, 0.48, 3.75][tier];
+	return { id: 'preview', ts: Date.now(), a: 'ALGO', b: 'USDC', usd: fee / 0.003, fee, proto: fee / 2 };
 }
 
 // ─── rendering ───
 function renderStatic() {
-	$('since').textContent = 'since ' + dayLabel(S.feed.genesis * 1000) + ', ' + timeLabel(S.feed.genesis * 1000);
+	$('since').textContent = 'since ' + dayLabel(S.feed.genesis * 1000);
 	$('gainLabel').textContent = S.base ? 'since you last checked · ' + whenLabel(S.base.at) : 'today';
+}
+
+function renderHud() {
+	const b = session.best;
+	$('hud').innerHTML =
+		'<span>This session <b class="num">+' + money(session.fees, session.fees < 10 ? 4 : 2) + '</b></span>' +
+		'<span><b class="num">' + session.n.toLocaleString() + '</b> fees</span>' +
+		(b ? '<span>Best <b class="num best">' + plusFee(b.fee) + '</b></span>' : '') +
+		'<span>Pace <b class="num">' + money(pace()) + '</b>/hr</span>';
 }
 
 function renderTiles() {
@@ -603,11 +1153,13 @@ function renderBars() {
 }
 
 function feedRow(r, fresh) {
+	const t = tierOf(r.fee);
 	const li = document.createElement('li');
-	if (fresh) li.className = 'new';
+	li.className = 't' + t + (fresh ? ' new' : '');
+	const pill = t >= 5 ? '<em class="pill">WHALE</em>' : t === 4 ? '<em class="pill">BIG</em>' : '';
 	li.innerHTML =
 		'<span class="fee num">' + plusFee(r.fee) + '</span>' +
-		'<span class="pair">' + esc(r.a) + ' → ' + esc(r.b) + '<small class="num">' + money(r.usd) + ' swap · ' + feeMoney(r.proto) + ' protocol</small></span>' +
+		'<span class="pair">' + esc(r.a) + ' → ' + esc(r.b) + pill + '<small class="num">' + money(r.usd) + ' swap · ' + feeMoney(r.proto) + ' protocol</small></span>' +
 		'<span class="ago num" data-ts="' + r.ts + '">' + ago(r.ts) + '</span>';
 	return li;
 }
@@ -632,8 +1184,9 @@ function renderFoot() {
 	$('foot').innerHTML = html;
 }
 
-let renderQueued = false;
+let renderQueued = false, renderDirty = false;
 function scheduleRender() {
+	if (document.hidden) return void (renderDirty = true);
 	if (renderQueued) return;
 	renderQueued = true;
 	setTimeout(() => {
@@ -641,6 +1194,7 @@ function scheduleRender() {
 		renderTiles();
 		renderChart();
 		renderBars();
+		renderHud();
 	}, 800);
 }
 
@@ -736,7 +1290,59 @@ function bindRange() {
 	set(saved);
 }
 
-// ─── celebration ───
+const ICON_ON = '<path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/>';
+const ICON_OFF = '<path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/>';
+function updateSoundUi() {
+	const on = prefs.mode !== 'off';
+	$('sndIcon').innerHTML = on ? ICON_ON : ICON_OFF;
+	$('sndBtn').classList.toggle('locked', on && !Sound.ready());
+	$('sndMode').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.m === prefs.mode));
+	$('vol').value = prefs.volume;
+	$('alerts').checked = !!prefs.alerts && 'Notification' in window && Notification.permission === 'granted';
+}
+
+function bindSettings() {
+	const pop = $('pop'), btn = $('sndBtn');
+	const close = () => { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
+	btn.addEventListener('click', (e) => {
+		e.stopPropagation();
+		pop.hidden = !pop.hidden;
+		btn.setAttribute('aria-expanded', String(!pop.hidden));
+	});
+	document.addEventListener('click', (e) => { if (!pop.hidden && !pop.contains(e.target)) close(); });
+	document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+	$('sndMode').querySelectorAll('button').forEach((b) =>
+		b.addEventListener('click', () => {
+			prefs.mode = b.dataset.m;
+			savePrefs();
+			updateSoundUi();
+			if (prefs.mode !== 'off') Sound.play('coin', 1);
+		}));
+	$('vol').addEventListener('input', (e) => { prefs.volume = Number(e.target.value); savePrefs(); });
+	$('vol').addEventListener('change', () => Sound.play('coin', 1));
+	if (standalone && 'Notification' in window) {
+		$('alertsRow').hidden = false;
+		$('alerts').addEventListener('change', async (e) => {
+			prefs.alerts = e.target.checked;
+			if (prefs.alerts && Notification.permission !== 'granted') prefs.alerts = (await Notification.requestPermission()) === 'granted';
+			savePrefs();
+			updateSoundUi();
+		});
+	}
+	pop.querySelectorAll('[data-pv]').forEach((b) =>
+		b.addEventListener('click', () => {
+			close();
+			reward(sampleSwap(Number(b.dataset.pv)), true);
+		}));
+	// Browsers only allow audio after a tap or keypress on the page.
+	const unlock = () => { Sound.unlock(); setTimeout(updateSoundUi, 50); };
+	document.addEventListener('pointerdown', unlock, { capture: true });
+	document.addEventListener('keydown', unlock, { capture: true });
+	Sound.init();
+	updateSoundUi();
+}
+
+// ─── milestones ───
 function milestoneFor(v) {
 	let m = 0;
 	for (const x of MILESTONES) if (v >= x) m = x;
@@ -753,55 +1359,10 @@ function checkMilestone() {
 }
 
 function celebrate(m) {
-	const t = $('toast');
-	t.innerHTML = 'Milestone: ' + money(m, 0) + ' in fees<small>since ' + dayLabel(S.feed.genesis * 1000) + '</small>';
-	t.classList.add('on');
-	setTimeout(() => t.classList.remove('on'), 4200);
-	confetti();
-}
-
-function confetti() {
-	if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-	const c = $('confetti');
-	const dpr = window.devicePixelRatio || 1;
-	c.width = innerWidth * dpr;
-	c.height = innerHeight * dpr;
-	const ctx = c.getContext('2d');
-	ctx.scale(dpr, dpr);
-	const colors = ['#0098d4', '#00bfff', '#bb8540', '#4ade80', '#ffffff'];
-	const parts = Array.from({ length: 140 }, () => ({
-		x: innerWidth / 2 + (Math.random() - 0.5) * 80,
-		y: innerHeight * 0.28,
-		vx: (Math.random() - 0.5) * 9,
-		vy: -Math.random() * 11 - 4,
-		r: Math.random() * Math.PI,
-		vr: (Math.random() - 0.5) * 0.3,
-		w: 5 + Math.random() * 5,
-		h: 3 + Math.random() * 4,
-		c: colors[(Math.random() * colors.length) | 0]
-	}));
-	const t0 = performance.now();
-	const frame = (now) => {
-		const k = (now - t0) / 2600;
-		ctx.clearRect(0, 0, innerWidth, innerHeight);
-		for (const p of parts) {
-			p.vy += 0.32;
-			p.vx *= 0.99;
-			p.x += p.vx;
-			p.y += p.vy;
-			p.r += p.vr;
-			ctx.save();
-			ctx.globalAlpha = Math.max(0, 1 - k * k);
-			ctx.translate(p.x, p.y);
-			ctx.rotate(p.r);
-			ctx.fillStyle = p.c;
-			ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-			ctx.restore();
-		}
-		if (k < 1) requestAnimationFrame(frame);
-		else ctx.clearRect(0, 0, innerWidth, innerHeight);
-	};
-	requestAnimationFrame(frame);
+	toast('Milestone: <b class="num">' + money(m, 0) + '</b> in fees<small>since ' + dayLabel(S.feed.genesis * 1000) + '</small>', true, 5000);
+	Sound.play('milestone');
+	FX.burst('confetti', innerWidth / 2, innerHeight * 0.3, 160, ['#0098d4', '#00bfff', '#bb8540', '#f2c14e', '#4ade80', '#ffffff']);
+	edgeGlow('rgba(0, 191, 255, 0.45)');
 }
 
 // ─── live loop ───
@@ -810,9 +1371,12 @@ function setLive(state) {
 	$('liveLabel').textContent = state;
 }
 
+/** Keep polling in a background tab only when that can still reach you (sound or alerts). */
+const backgroundOn = () => (prefs.mode !== 'off' && Sound.ready()) || (prefs.alerts && 'Notification' in window && Notification.permission === 'granted');
+
 let polling = false;
 async function poll() {
-	if (polling || document.hidden) return;
+	if (polling || (document.hidden && !backgroundOn())) return;
 	polling = true;
 	try {
 		const { rows, reached } = await fetchSince(S.newestTs - 90000, reached0());
@@ -825,10 +1389,22 @@ async function poll() {
 			const tA = priced[0].ts, tB = priced[priced.length - 1].ts;
 			S.newestTs = Math.max(S.newestTs, tB);
 			if (priced.length > 40) {
-				// Back from a while away: settle the backlog in one count-up.
+				// Back from a while away: settle the backlog in one count-up, then
+				// celebrate the biggest fee in it.
 				const from = S.total;
-				for (const r of priced) apply(r);
-				countTo(from, S.total, 1400, checkMilestone);
+				let top = priced[0];
+				for (const r of priced) {
+					apply(r);
+					session.fees += r.fee;
+					session.n += 1;
+					if (r.fee > top.fee) top = r;
+					if (!session.best || r.fee > session.best.fee) session.best = r;
+				}
+				Sound.countUp(1400, tierOf(S.total - from));
+				countTo(from, S.total, 1400, () => {
+					checkMilestone();
+					if (tierOf(top.fee) >= 4) reward(top, true);
+				});
 				renderFeed();
 				scheduleRender();
 				return;
@@ -839,12 +1415,9 @@ async function poll() {
 				const delay = priced.length === 1 ? 0 : ((r.ts - tA) / Math.max(1, tB - tA)) * (POLL_MS - 700);
 				setTimeout(() => {
 					apply(r);
-					setOdo(S.total);
+					setOdo(S.total, tierOf(r.fee) >= 2 ? tierOf(r.fee) : null);
 					setGain(S.total);
-					odo.classList.remove('bump');
-					void odo.offsetWidth;
-					odo.classList.add('bump');
-					floatGain(r.fee);
+					reward(r);
 					pushFeed(r);
 					checkMilestone();
 					scheduleRender();
@@ -862,9 +1435,9 @@ const reached0 = () => (Date.now() - S.lastOk > 60000 ? 30 : 4);
 
 async function boot() {
 	let p = JSON.parse($('payload').textContent);
+	const q = new URLSearchParams(location.search);
 	if (typeof p === 'string') {
-		// Opened outside Scriptable (browser preview): fetch the feed ourselves.
-		const q = new URLSearchParams(location.search);
+		// Opened outside Scriptable (browser / GitHub Pages): fetch the feed ourselves.
 		standalone = true;
 		const feed = await getJSON(q.get('feed') || FEED_URL);
 		const saved = loadLocal();
@@ -890,11 +1463,13 @@ async function boot() {
 	setGain(start);
 	renderStatic();
 	renderTiles();
+	renderHud();
 	renderFeed();
 	renderFoot();
 	bindRange();
 	bindChart();
 	bindBars();
+	bindSettings();
 	renderBars();
 
 	// Catch up from the feed's cursor to now, then run the opening count-up.
@@ -919,37 +1494,80 @@ async function boot() {
 	renderFeed();
 	renderFoot();
 	setLive('LIVE');
-	countTo(start, S.total, S.total - start > 0.01 ? 1900 : 300, () => {
+	const delta = S.total - start;
+	const openMs = delta > 0.01 ? Math.min(3200, 1500 + Math.log10(1 + delta * 100) * 450) : 300;
+	Sound.countUp(openMs, tierOf(delta));
+	countTo(start, S.total, openMs, () => {
+		// A good haul since last time gets its own moment.
+		const t = tierOf(delta);
+		if (t >= 3) {
+			const a = odoAnchor();
+			retrigger($('glint'), 'go');
+			FX.burst(t >= 4 ? 'coin' : 'spark', a.x, a.y, t >= 4 ? 40 : 20, [TIER_COLOR[t], '#ffffff']);
+			if (t >= 4) edgeGlow('rgba(242, 193, 78, 0.4)');
+		}
 		checkMilestone();
 		setInterval(poll, POLL_MS);
+		if (q.get('demo')) demo();
 	});
 	setInterval(() => {
 		document.querySelectorAll('.ago[data-ts]').forEach((el) => (el.textContent = ago(Number(el.dataset.ts))));
 		renderFoot();
 	}, 1000);
+	setInterval(renderHud, 30000); // pace drifts even without new fees
 	addEventListener('resize', scheduleRender);
 
-	// Desktop niceties: running total in the tab title, and "since you last
-	// checked" counts from when you left the tab.
-	setInterval(() => (document.title = money(shown) + ' · Pact fees'), 1000);
+	// Running total in the tab title (with the latest fee while you're away),
+	// and "since you last checked" counts from when you left the tab.
+	setInterval(() => {
+		const f = titleFlash && titleFlash.until > Date.now() ? titleFlash.text + ' · ' : '';
+		document.title = f + money(shown) + ' · Pact fees';
+	}, 1000);
 	let leftAt = null;
 	document.addEventListener('visibilitychange', () => {
 		if (document.hidden) {
-			leftAt = { total: S.total, at: Date.now() };
+			leftAt = { total: S.total, at: Date.now(), bg: backgroundOn() };
 			saveLocal();
 			return;
 		}
+		titleFlash = null;
+		if (renderDirty) {
+			renderDirty = false;
+			renderFeed();
+			scheduleRender();
+		}
 		if (!leftAt || Date.now() - leftAt.at < 60000) return;
-		// Long gaps: reload so the feed (and counter) rebuild from fresh data;
-		// the saved baseline makes the reopen count up from where you left.
-		if (standalone && Date.now() - leftAt.at > 10 * 60000) return location.reload();
+		// Long gaps without background polling: reload so the feed rebuilds from
+		// fresh data; the saved baseline makes the reopen count up from where you left.
+		if (standalone && !leftAt.bg && Date.now() - leftAt.at > 10 * 60000) return location.reload();
 		S.base = leftAt;
 		renderStatic();
-		setGain(S.total);
+		const gained = S.total - leftAt.total;
+		if (gained > 0.005) {
+			Sound.countUp(1600, tierOf(gained));
+			countTo(leftAt.total, S.total, 1600);
+		} else setGain(S.total);
 		poll();
 	});
 	addEventListener('pagehide', saveLocal);
 	setInterval(saveLocal, 15000);
+}
+
+/** ?demo=1 — fake fees on a realistic size curve, for previewing the effects. */
+function demo() {
+	const next = () => {
+		const u = Math.random();
+		const fee = u < 0.015 ? 1 + Math.random() * 6 : u < 0.06 ? 0.25 + Math.random() * 0.6 : Math.pow(10, -3.5 + Math.random() * 2.8);
+		const r = { id: 'demo' + Math.random(), ts: Date.now(), a: 'ALGO', b: 'USDC', usd: fee / 0.003, fee, proto: fee * 0.4 };
+		apply(r);
+		setOdo(S.total, tierOf(fee) >= 2 ? tierOf(fee) : null);
+		setGain(S.total);
+		reward(r);
+		pushFeed(r);
+		scheduleRender();
+		setTimeout(next, 300 + Math.random() * 2200);
+	};
+	next();
 }
 
 boot().catch((e) => {

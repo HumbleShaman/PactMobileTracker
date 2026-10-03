@@ -5,6 +5,17 @@ A personal iPhone widget that shows Pact swap fees as they build up: total fees 
 - **Home screen widgets** (small / medium / large): the running total, **+$X since you last checked**, today's fees, and a chart of fees building up over time.
 - **Lock screen widgets** (rectangular / inline / circular).
 - **On a computer:** https://humbleshaman.github.io/PactMobileTracker/ is the same live view (GitHub Pages), laid out wide. The running total shows in the tab title.
+- **Rewards when fees land** (live view and desktop). Every fee gets a tier, and the sound and visuals scale with it:
+
+  | Tier | Fee per swap | Effect |
+  |---|---|---|
+  | Tick | $0.001+ | soft tick |
+  | Coin | $0.01+ | coin sound, float |
+  | Nice | $0.05+ | chime, sparks, glint |
+  | Big | $0.25+ | ka-ching, coin shower, gold edge, toast |
+  | Whale | $1+ | fanfare, confetti, whale banner |
+
+  Fees that land close together build a combo, and each hit raises the pitch. The session score tracks earnings, fee count, best fee and pace. Sound options are Off / Big / Coins / All, plus a volume slider and preview buttons. On desktop you can also turn on browser alerts for $0.25+ fees while the tab is in the background. `?demo=1` fakes a stream of fees for testing.
 - **Tap any widget** to open the live view. The total rolls up from where you last left it, each real swap pops in as it lands, and a milestone ($1K, $2.5K, …) sets off confetti.
 
 ## How it works
