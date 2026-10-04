@@ -21,6 +21,7 @@
 		--accent: #00bfff;
 		--accent-hi: #33ccff;
 		--warn: #d9a055;
+		--down: #e87060;
 		/* reward tiers: tick → coin → nice → big → whale */
 		--t1: #8fdcae;
 		--t2: #4ade80;
@@ -188,6 +189,32 @@
 	.pair small { display: block; font-size: 11px; color: var(--muted); }
 	.ago { font-size: 11px; color: var(--faint); }
 
+	/* ALGO price card */
+	.px-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+	.px-name { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--bright); letter-spacing: 0.02em; }
+	.px-name img { width: 20px; height: 20px; }
+	.px-name span { color: var(--muted); font-weight: 600; }
+	.px-src { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--muted); }
+	.px-src i { width: 6px; height: 6px; border-radius: 50%; background: var(--faint); }
+	.px-src.on i { background: var(--gain); animation: pulse 2.4s ease-out infinite; }
+	.px-src.on i.beat { animation: beat 0.5s ease-out; }
+	@keyframes beat { 0% { transform: scale(1.9); box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.35); } 100% { transform: none; box-shadow: none; } }
+	.px-row { display: flex; align-items: baseline; gap: 8px; }
+	.px-price { font-size: 34px; font-weight: 700; color: var(--bright); letter-spacing: -0.02em; transition: color 1.4s ease; }
+	.px-price.up { color: var(--gain); transition-duration: 0s; }
+	.px-price.down { color: var(--down); transition-duration: 0s; }
+	.px-tick { width: 12px; font-size: 12px; opacity: 0; transition: opacity 1.4s ease; }
+	.px-tick.on { opacity: 1; transition-duration: 0s; }
+	.px-tick.up { color: var(--gain); }
+	.px-tick.down { color: var(--down); }
+	.px-chg { margin-left: auto; font-size: 13px; font-weight: 700; padding: 2px 7px; border-radius: 3px; color: var(--muted); }
+	.px-chg.up { color: var(--gain); background: rgba(74, 222, 128, 0.1); }
+	.px-chg.down { color: var(--down); background: rgba(232, 112, 96, 0.1); }
+	#pxSpark { margin: 10px 0 8px; }
+	.px-range { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
+	.px-track { position: relative; flex: 1; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.08); }
+	.px-track i { position: absolute; top: 50%; left: 50%; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); border: 2px solid #13161f; transform: translate(-50%, -50%); transition: left 0.6s cubic-bezier(0.2, 0.9, 0.25, 1); }
+
 	footer { font-size: 11px; color: var(--faint); line-height: 1.5; margin-top: 16px; }
 	footer p + p { margin-top: 4px; }
 	.warn { color: var(--warn); }
@@ -219,8 +246,8 @@
 	@media (min-width: 980px) {
 		body { max-width: 1280px; padding: 28px 40px 36px; }
 		.layout { display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 20px; align-items: start; }
-		.col-side { position: sticky; top: 20px; }
-		.col-side .card { max-height: calc(100vh - 40px); overflow-y: auto; margin-bottom: 0; }
+		.col-side { position: sticky; top: 20px; display: flex; flex-direction: column; max-height: calc(100vh - 40px); }
+		.col-side .feedcard { flex: 1; min-height: 0; overflow-y: auto; margin-bottom: 0; }
 		.hero { margin-bottom: 24px; }
 		.odo { font-size: 92px; }
 		.tv { font-size: 24px; }
@@ -321,7 +348,16 @@
 
 </div>
 <aside class="col-side">
-<section class="card edge">
+<section class="card edge" id="px" aria-label="ALGO price">
+	<div class="px-head">
+		<div class="px-name"><img alt="" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAQAAAD9CzEMAAAE9klEQVR42rWYT4iVVRjGn3POd0dnsvwDKRk5i9QW5YRgEmEaqIRuBAODNkZFBUVQ6iZw0UKIiHIRbTX8U1i0bStSlEaJ6WhqTVoplWQzms7MPec9vxbz3XGcud+dO5XnrO65fO9zzvs+73Pe9zhVDJyCS5LE7XGpX+6W+O58p+/MTtf9pXye4/lI7ai7KkkUMoemMgiSdKIjrrdd1kfFsD7bFdef6LjxRXvGHV660JVeshMjhjKWLJmZWbZsZmbJUm7AnEgvX+iS8Li29x6fsF4AM0tmmeZz5F+AdDI+0dY5CFL/HPYAtDI9HgbA9vTPmQSCQhpeaqfaN34ziJ0aXjpipdJ8XGP9YHEqxkdBIlh/XFMBQZAG19ggWGplJhGJRKwZRAIbjKubOIog0WMDkFq6xsaQtCm8QRoY7rkB4cqkcpqZj/iF2VyLICGvY/pFNUUt0QKhibzEfMhn/XJdEaPJR5Di/sl8nzB+Yw5CiOeBenUs9o1xE0GKGyYPbQReQHRQ4LmfSG4aiRGIuKGEwOHotDPk1sSMwLcUBBwOUXASSBWkJdsZOnE4r+DQ035Rzs63SkEnaZuSJCcUlHRIyIQmqpzzOftF9rRDQTg67HQ7+/8EEXAIUSCeBHIFnyyR7TQdOElxHdgk5ExcYxGOgFjKbIS4hz/4m6v0N88Jg7hOkmS7ya0DHIEdiAJPJ9/zMMIj5tHNfJ4jN4mFRbLtlsSMdB4st6Jn5mdm4qkhtpVcKkq6im+AOBEgg51jhuorWxlv7H8zooZjAZfJHEAERA3xSlPzDZD6SrGltfpE4Es8noDYC8BFZpYQc/kdqyJrArb43NP6hnDK2qqsQqYVekpRyKuQ5CW9qrkyVfM793h1NxSp2TAFfagvFGQKekdOWU5v6E8FIemaaJ063Uq91SE2jCt046ghngWGgKPU8CVll1XKRSZlsF5ZXzVABLYjanjmcBGjDqwtE84hpvNTtWBksL4WAInMj8zAUyDeBQaBT8fkc0Dsq1bVEYBqF0VgE6ID8QBDRBLXWYzDI2biKErHxWqAXtnB5kIRgYOIQEB8Vvr/zTIf7uYjhEPcV7H/EbGwg7IPmuWBkUg8VO5/AzBM5ldmlfn8NjAP4Qkcq4iCJWC3999V0XO3vlahpC69JSQ5bVe/CiUt1ItCj0iqyXRIUq6i+fGmUmEYl5lf0vP10j1fEQgUiAMAvIeYhtjYIgr1lWKGnRsf5ghsHVWfARKRzKOlw1aRqQPH8DjEXVyBCdkwKnYT5TqROcX0kp57S3ruRxQEAofLHQ+zuKTqoSZnGJXriRdOAjbi6ESsIFPHuMa9FExHbC6NReAZArcR2NEkF0YvnPFXZgQ+HtX6w6X/Xyt/d3G+PGMd2FuuLptw5SRrXJmFgqunnXq/QQSvrM+1WjUN6TEtV9I0/aU+rVXQkDZpQameQdIqPS6TdLuu6g7lMZrpkGenq1M4nKTp+ZhfmBmpKxgjvyMfTVwZUxaWNd9N1V32Lv/gH9SQ5B3ybjBvk2ucwSnLyukqVhpgjdXx14Bc3uYG5cvisb3ScUpl/L6bKmwcvn92OjtZ6d6W+QTpLLPGdWztlu+TzWRgA/RUdAjtNCCT7d6uN21A/scWavUkXdotbAJvtLF2q9rYf9+IW2+bjfi/fEp4aQpPCWPPQe2/P4a4qT3nqEvSdV1S2885/wBGyVTFFGUq2QAAAABJRU5ErkJggg==" />ALGO <span>/ USD</span></div>
+		<div class="px-src" id="pxSrc"><i></i><span id="pxSrcLabel">CONNECTING</span></div>
+	</div>
+	<div class="px-row"><span class="px-price num" id="pxPrice">–</span><span class="px-tick" id="pxTick"></span><span class="px-chg num" id="pxChg"></span></div>
+	<svg id="pxSpark" height="46" aria-hidden="true"></svg>
+	<div class="px-range num"><span id="pxLo">L –</span><div class="px-track"><i id="pxDot"></i></div><span id="pxHi">H –</span></div>
+</section>
+<section class="card feedcard">
 	<div class="card-head"><div class="card-title">Live swaps</div><div class="sub" id="feedSub"></div></div>
 	<ul class="feed" id="feed"></ul>
 </section>
@@ -1366,6 +1402,172 @@ function celebrate(m) {
 	edgeGlow('rgba(0, 191, 255, 0.45)');
 }
 
+// ─── live ALGO price: Binance trades, Coinbase as backup; public, no keys ───
+const AlgoPrice = (() => {
+	const st = { last: 0, open: 0, hi: 0, lo: 0, hist: [], i: 0, ws: null, paused: false };
+	const SOURCES = [
+		{
+			label: 'BINANCE',
+			url: 'wss://data-stream.binance.vision/stream?streams=algousdt@aggTrade/algousdt@miniTicker',
+			parse(m) {
+				const d = m.data || m;
+				if (d.e === 'aggTrade') return { last: +d.p };
+				if (d.e === '24hrMiniTicker') return { last: +d.c, open: +d.o, hi: +d.h, lo: +d.l };
+			},
+			async seed() {
+				const [t, k] = await Promise.all([
+					getJSON('https://api.binance.com/api/v3/ticker/24hr?symbol=ALGOUSDT'),
+					getJSON('https://api.binance.com/api/v3/klines?symbol=ALGOUSDT&interval=15m&limit=96')
+				]);
+				return { last: +t.lastPrice, open: +t.openPrice, hi: +t.highPrice, lo: +t.lowPrice, hist: k.map((c) => [c[0] / 1000, +c[4]]) };
+			}
+		},
+		{
+			label: 'COINBASE',
+			url: 'wss://ws-feed.exchange.coinbase.com',
+			sub: { type: 'subscribe', product_ids: ['ALGO-USD'], channels: ['ticker'] },
+			parse(m) {
+				if (m.type === 'ticker') return { last: +m.price, open: +m.open_24h, hi: +m.high_24h, lo: +m.low_24h };
+			},
+			async seed() {
+				const [s, k] = await Promise.all([
+					getJSON('https://api.exchange.coinbase.com/products/ALGO-USD/stats'),
+					getJSON('https://api.exchange.coinbase.com/products/ALGO-USD/candles?granularity=900')
+				]);
+				return { last: +s.last, open: +s.open, hi: +s.high, lo: +s.low, hist: k.slice(0, 96).reverse().map((c) => [c[0], +c[4]]) };
+			}
+		}
+	];
+
+	let renderTimer = null, tickTimer = null;
+	function update(u, quiet) {
+		const prev = st.last;
+		for (const k of ['last', 'open', 'hi', 'lo']) if (u[k] > 0) st[k] = u[k];
+		if (u.hist && u.hist.length) st.hist = u.hist;
+		if (st.hi && st.last > st.hi) st.hi = st.last;
+		if (st.lo && st.last < st.lo) st.lo = st.last;
+		// Keep the sparkline's newest 15-minute point on the live price.
+		const nowS = Date.now() / 1000, tail = st.hist[st.hist.length - 1];
+		if (tail && nowS - tail[0] < 900) tail[1] = st.last;
+		else if (st.last) {
+			st.hist.push([nowS, st.last]);
+			if (st.hist.length > 120) st.hist.shift();
+		}
+		if (!quiet && prev && st.last !== prev && !document.hidden) flash(st.last > prev ? 'up' : 'down');
+		if (!renderTimer) renderTimer = setTimeout(() => { renderTimer = null; render(); }, 200);
+	}
+
+	function flash(dir) {
+		const pe = $('pxPrice'), te = $('pxTick');
+		pe.classList.remove('up', 'down');
+		te.className = 'px-tick on ' + dir;
+		te.textContent = dir === 'up' ? '▲' : '▼';
+		void pe.offsetWidth;
+		pe.classList.add(dir);
+		clearTimeout(tickTimer);
+		// Dropping the class lets the colour ease back to white.
+		tickTimer = setTimeout(() => { pe.classList.remove('up', 'down'); te.classList.remove('on'); }, 90);
+	}
+
+	function render() {
+		if (!st.last) return;
+		$('pxPrice').textContent = '$' + st.last.toFixed(st.last < 1 ? 4 : 2);
+		const chg = st.open ? ((st.last - st.open) / st.open) * 100 : 0;
+		const c = $('pxChg');
+		c.textContent = (chg >= 0 ? '+' : '') + chg.toFixed(2) + '% 24h';
+		c.className = 'px-chg num ' + (chg > 0 ? 'up' : chg < 0 ? 'down' : '');
+		if (st.hi && st.lo) {
+			$('pxLo').textContent = 'L $' + st.lo.toFixed(4);
+			$('pxHi').textContent = 'H $' + st.hi.toFixed(4);
+			$('pxDot').style.left = (st.hi > st.lo ? ((st.last - st.lo) / (st.hi - st.lo)) * 100 : 50) + '%';
+		}
+		const svg = $('pxSpark');
+		const W = svg.clientWidth || 300, H = 46, pts = st.hist;
+		if (pts.length > 1) {
+			let lo = Infinity, hi = -Infinity;
+			for (const p of pts) { lo = Math.min(lo, p[1]); hi = Math.max(hi, p[1]); }
+			const pad = (hi - lo) * 0.12 || st.last * 0.002;
+			lo -= pad;
+			hi += pad;
+			const t0 = pts[0][0], t1 = pts[pts.length - 1][0];
+			const X = (t) => ((t - t0) / Math.max(1, t1 - t0)) * (W - 6) + 1;
+			const Y = (v) => H - 2 - ((v - lo) / (hi - lo)) * (H - 4);
+			const line = pts.map((p, i) => (i ? 'L' : 'M') + X(p[0]).toFixed(1) + ' ' + Y(p[1]).toFixed(1)).join('');
+			const col = chg < 0 ? '#e87060' : '#4ade80';
+			svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+			svg.innerHTML =
+				'<defs><linearGradient id="pxf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + col + '" stop-opacity=".22"/><stop offset="1" stop-color="' + col + '" stop-opacity="0"/></linearGradient></defs>' +
+				'<path d="' + line + 'L' + X(t1).toFixed(1) + ' ' + H + 'L' + X(t0).toFixed(1) + ' ' + H + 'Z" fill="url(#pxf)"/>' +
+				'<path d="' + line + '" fill="none" stroke="' + col + '" stroke-width="1.6" stroke-linejoin="round"/>' +
+				'<circle cx="' + X(t1) + '" cy="' + Y(pts[pts.length - 1][1]) + '" r="3" fill="' + col + '" stroke="#13161f" stroke-width="1.5"/>';
+		}
+	}
+
+	function status(label, on) {
+		$('pxSrc').classList.toggle('on', on);
+		$('pxSrcLabel').textContent = on ? 'LIVE · ' + label : label;
+	}
+
+	async function connect() {
+		if (st.paused || st.ws) return;
+		const src = SOURCES[st.i % SOURCES.length];
+		status('CONNECTING', false);
+		try {
+			update(await src.seed(), true);
+		} catch (e) {
+			st.i++; // REST blocked or down from here: try the other exchange
+			return void setTimeout(connect, 1500);
+		}
+		if (st.paused || st.ws) return;
+		let heard = false;
+		const ws = new WebSocket(src.url);
+		st.ws = ws;
+		ws.onopen = () => {
+			if (src.sub) ws.send(JSON.stringify(src.sub));
+			status(src.label, true);
+		};
+		ws.onmessage = (e) => {
+			heard = true;
+			let m;
+			try { m = JSON.parse(e.data); } catch (x) { return; }
+			const u = src.parse(m);
+			if (!u) return;
+			update(u);
+			if (!document.hidden) retrigger(document.querySelector('#pxSrc i'), 'beat'); // every trade, even at an unchanged price
+		};
+		ws.onerror = () => { try { ws.close(); } catch (x) {} };
+		ws.onclose = () => {
+			if (st.ws !== ws) return;
+			st.ws = null;
+			if (st.paused) return;
+			if (!heard) st.i++; // never got data: fail over to the other exchange
+			status('RECONNECTING', false);
+			setTimeout(connect, heard ? 2000 : 5000);
+		};
+	}
+
+	// Quiet markets can go a minute without a trade; refresh the 24h stats anyway.
+	setInterval(async () => {
+		if (st.paused) return;
+		try { update(await SOURCES[st.i % SOURCES.length].seed(), true); } catch (e) {}
+	}, 60000);
+	addEventListener('resize', () => render());
+
+	return {
+		start: connect,
+		pause() {
+			st.paused = true;
+			const ws = st.ws;
+			st.ws = null;
+			if (ws) try { ws.close(); } catch (e) {}
+		},
+		resume() {
+			st.paused = false;
+			connect();
+		}
+	};
+})();
+
 // ─── live loop ───
 function setLive(state) {
 	$('live').classList.toggle('on', state === 'LIVE');
@@ -1472,6 +1674,7 @@ async function boot() {
 	bindBars();
 	bindSettings();
 	renderBars();
+	AlgoPrice.start();
 
 	// Catch up from the feed's cursor to now, then run the opening count-up.
 	try {
@@ -1529,8 +1732,10 @@ async function boot() {
 		if (document.hidden) {
 			leftAt = { total: S.total, at: Date.now(), bg: backgroundOn() };
 			saveLocal();
+			AlgoPrice.pause();
 			return;
 		}
+		AlgoPrice.resume();
 		titleFlash = null;
 		if (renderDirty) {
 			renderDirty = false;
