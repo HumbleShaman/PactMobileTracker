@@ -26,6 +26,7 @@ const INK = {
 	faint: '#4a4f61',
 	total: '#0098d4', // series: total fees
 	proto: '#bb8540', // series: protocol share
+	block: '#a78bfa', // block rewards (ALGO)
 	gain: '#4ade80'
 };
 
@@ -105,7 +106,8 @@ async function readPoolSplit(poolId) {
 			if (kv.value.type === 2) gs[Data.fromBase64String(kv.key).toRawString()] = kv.value.uint;
 		}
 		if (gs.FEE_BPS != null) return [gs.FEE_BPS, gs.PACT_FEE_BPS || 0];
-		if (gs.swap_fee_bps != null) return [gs.swap_fee_bps, (gs.swap_fee_bps * (gs.protocol_fee_bps || 0)) / 1e4];
+		const fee = gs.swap_fee_bps != null ? gs.swap_fee_bps : gs.fee_bps; // weighted / clMM
+		if (fee != null) return [fee, (fee * (gs.protocol_fee_bps || 0)) / 1e4];
 	} catch (e) {}
 	return null;
 }
@@ -209,6 +211,7 @@ function summarize(feed, extra) {
 			todayProto += b[1];
 		}
 		if (t >= nowS - 86400) day += b[0];
+		if (t < feed.genesis) continue; // last month's hours, kept for "last 24h"
 		cum += b[0];
 		cumP += b[1];
 		const span = t < (feed.hourlyFrom || 0) ? 86400 : 3600;
@@ -216,7 +219,19 @@ function summarize(feed, extra) {
 	}
 
 	const recent = extra.concat(feed.recent).sort((a, b) => b.ts - a.ts).slice(0, 40);
+	// Block rewards (ALGO), straight from the feed: no top-up, so at most one collector run old.
+	let blocks = null;
+	if (feed.rewards) {
+		let rwToday = 0;
+		for (const r of feed.rewards.series) if (r[0] >= m0) rwToday += r[1];
+		blocks = { algo: feed.rewards.algo, today: rwToday, n: feed.rewards.blocks };
+	}
+	// The counter restarts on the 1st; months[] lists earlier ones (newest first).
+	const prev = (feed.months || []).find((r) => r[0] < feed.genesis);
 	return {
+		blocks,
+		month: feed.monthEnd ? monthLabel(feed.genesis, feed.tz) : null,
+		lastMonth: prev ? { name: monthLabel(prev[0], feed.tz), fees: prev[1] } : null,
 		total,
 		protocol,
 		today,
@@ -260,6 +275,22 @@ function clock(ms) {
 	if (d.toDateString() === today.toDateString()) return t;
 	const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 	return days[d.getDay()] + ' ' + t;
+}
+
+/** "November", or "Sep 28–30" for the part-month tracking began in (feed.tz offset). */
+function monthLabel(start, tz) {
+	const names = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+	const d = new Date((start + (tz || 0)) * 1000);
+	if (d.getUTCDate() === 1) return names[d.getUTCMonth()];
+	const end = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0));
+	return names[d.getUTCMonth()].slice(0, 3) + ' ' + d.getUTCDate() + '–' + end.getUTCDate();
+}
+
+/** ALGO amounts: whole ALGO from 1,000 up, then K/M. */
+function algo(v) {
+	if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M';
+	if (v >= 1e5) return (v / 1e3).toFixed(0) + 'K';
+	return num(v, v >= 1000 ? 0 : 2);
 }
 
 function shortDate(ms) {
@@ -383,7 +414,7 @@ function buildWidget(s, family, delta, deltaLabel) {
 		return w;
 	}
 	if (family === 'accessoryRectangular') {
-		const a = w.addText('PACT FEES');
+		const a = w.addText(s.month ? 'PACT FEES · ' + s.month.slice(0, 3).toUpperCase() : 'PACT FEES');
 		a.font = Font.semiboldRoundedSystemFont(11);
 		const b = w.addText(money(s.total));
 		b.font = Font.boldRoundedSystemFont(18);
@@ -404,7 +435,7 @@ function buildWidget(s, family, delta, deltaLabel) {
 
 	if (family === 'small') {
 		w.setPadding(13, 14, 12, 14);
-		header(w, s, 'PACT FEES');
+		header(w, s, s.month ? 'PACT · ' + s.month.slice(0, 3).toUpperCase() : 'PACT FEES');
 		w.addSpacer(4);
 		text(w, money(s.total), 25, INK.bright, 'bold');
 		gainLine(w, delta, deltaLabel, 15);
@@ -413,12 +444,16 @@ function buildWidget(s, family, delta, deltaLabel) {
 		img.imageSize = new Size(130, 22);
 		w.addSpacer(5);
 		swatchRow(w, INK.proto, 'Protocol', money(s.protocol), 11);
+		if (s.blocks) {
+			w.addSpacer(2);
+			swatchRow(w, INK.block, 'Blocks', algo(s.blocks.algo) + ' ALGO', 11);
+		}
 		return w;
 	}
 
 	if (family === 'large') {
 		w.setPadding(16, 16, 14, 16);
-		header(w, s, 'PACT FEES · SINCE ' + shortDate(s.genesis * 1000).toUpperCase());
+		header(w, s, s.month ? 'PACT FEES · ' + s.month.toUpperCase() : 'PACT FEES · SINCE ' + shortDate(s.genesis * 1000).toUpperCase());
 		w.addSpacer(6);
 		text(w, money(s.total), 36, INK.bright, 'bold');
 		gainLine(w, delta, deltaLabel, 17, true);
@@ -434,6 +469,7 @@ function buildWidget(s, family, delta, deltaLabel) {
 		tile('PROTOCOL', money(s.protocol));
 		tile('TODAY', money(s.today));
 		tile('LAST 24H', money(s.day));
+		if (s.lastMonth) tile(s.lastMonth.name.toUpperCase(), money(s.lastMonth.fees, 0));
 		w.addSpacer(10);
 		const img = w.addImage(chartImage(s.points, 300, 96));
 		img.imageSize = new Size(300, 96);
@@ -443,9 +479,17 @@ function buildWidget(s, family, delta, deltaLabel) {
 		legend.addSpacer(10);
 		swatchRow(legend, INK.proto, 'Protocol', '', 10);
 		w.addSpacer(8);
+		if (s.blocks) {
+			const br = w.addStack();
+			br.centerAlignContent();
+			swatchRow(br, INK.block, 'Block rewards', algo(s.blocks.algo) + ' ALGO', 12);
+			br.addSpacer();
+			text(br, '+' + algo(s.blocks.today) + ' today · ' + s.blocks.n.toLocaleString() + ' blocks', 11, INK.muted, 'medium');
+			w.addSpacer(6);
+		}
 		// Skip dust so the list shows swaps that visibly earned something.
 		const worth = s.recent.filter((r) => r.fee >= 0.001);
-		for (const r of (worth.length >= 3 ? worth : s.recent).slice(0, 3)) {
+		for (const r of (worth.length >= 3 ? worth : s.recent).slice(0, s.blocks ? 2 : 3)) {
 			const row = w.addStack();
 			row.centerAlignContent();
 			text(row, r.fee < 0.0001 ? '<$0.0001' : '+' + money(r.fee, r.fee < 0.01 ? 4 : 2), 12, INK.gain, 'semibold');
@@ -465,7 +509,7 @@ function buildWidget(s, family, delta, deltaLabel) {
 	const left = body.addStack();
 	left.layoutVertically();
 	left.size = new Size(148, 0);
-	text(left, 'PACT FEES', 11, INK.muted, 'semibold');
+	text(left, s.month ? 'PACT FEES · ' + s.month.slice(0, 3).toUpperCase() : 'PACT FEES', 11, INK.muted, 'semibold');
 	left.addSpacer(4);
 	text(left, money(s.total), 26, INK.bright, 'bold');
 	gainLine(left, delta, deltaLabel, 15);
@@ -476,6 +520,10 @@ function buildWidget(s, family, delta, deltaLabel) {
 	text(tr, 'Today', 11, INK.muted, 'medium');
 	tr.addSpacer(4);
 	text(tr, money(s.today), 11, INK.body, 'semibold');
+	if (s.blocks) {
+		left.addSpacer(3);
+		swatchRow(left, INK.block, 'Blocks', algo(s.blocks.algo) + ' ALGO', 11);
+	}
 	body.addSpacer(6);
 	const right = body.addStack();
 	right.layoutVertically();
@@ -516,7 +564,8 @@ async function showLive(feedText, prefs) {
 	const html = await cachedText(LIVE_URL, 'live.html');
 	const feed = JSON.parse(feedText);
 	const base = prefs.open && prefs.open.genesis === feed.genesis ? prefs.open : null;
-	const payload = { feed: feed, base: base, milestone: prefs.milestone || 0 };
+	// Milestones count within a month, so they restart with it.
+	const payload = { feed: feed, base: base, milestone: prefs.milestoneOf === feed.genesis ? prefs.milestone || 0 : 0 };
 	// split/join, not replace(): JSON can contain "$&"-style sequences.
 	const page = html.split('"__PAYLOAD__"').join(JSON.stringify(payload).replace(/</g, '\\u003c'));
 
@@ -531,6 +580,7 @@ async function showLive(feedText, prefs) {
 			if (st && st.total > 0) {
 				prefs.open = { total: st.total, at: Date.now(), genesis: feed.genesis };
 				prefs.milestone = st.milestone;
+				prefs.milestoneOf = feed.genesis;
 				savePrefs(prefs);
 			}
 		} catch (e) {}

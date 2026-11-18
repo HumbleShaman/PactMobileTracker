@@ -12,13 +12,14 @@ export const MAX_SWAP_USD = 5_000_000;
  *    protocol's part of it (LPs keep FEE_BPS - PACT_FEE_BPS).
  *  - managed weighted: swap_fee_bps is the total; protocol_fee_bps is the
  *    protocol's share OF that fee (2500 = 25%).
+ *  - concentrated liquidity (clMM): fee_bps is the total; protocol_fee_bps is
+ *    the protocol's share of it, as for weighted.
  * Returns null for anything else (caller falls back to the indexer's fields).
  */
 export function poolFeeSplit(gs) {
 	if (gs.FEE_BPS != null) return { fee: gs.FEE_BPS, pact: gs.PACT_FEE_BPS ?? 0 };
-	if (gs.swap_fee_bps != null) {
-		return { fee: gs.swap_fee_bps, pact: (gs.swap_fee_bps * (gs.protocol_fee_bps ?? 0)) / 1e4 };
-	}
+	const fee = gs.swap_fee_bps ?? gs.fee_bps;
+	if (fee != null) return { fee, pact: (fee * (gs.protocol_fee_bps ?? 0)) / 1e4 };
 	return null;
 }
 
