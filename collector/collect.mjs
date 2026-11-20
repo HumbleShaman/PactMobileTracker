@@ -18,13 +18,16 @@
 // listed in `months`, and `allTime` covers everything since tracking began.
 //
 // Usage: node collector/collect.mjs [dataDir]   (default ./data)
-// State lives in <dataDir>/state.json; output is <dataDir>/feed.json.
+// State lives in <dataDir>/state.json; outputs are <dataDir>/feed.json (fees,
+// for the widget and live page) and <dataDir>/market.json (market rollups, for
+// the dashboard tabs; see market.mjs).
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { poolFeeSplit, swapFees, HOUR_S } from './fees.mjs';
 import { collectRewards, rewardsFeed } from './rewards.mjs';
 import { TZ_S, nextMonthStart, periodStart } from './period.mjs';
+import { initMarket, marketSwap, collectMarket, buildMarket, dayStart } from './market.mjs';
 
 const API = 'https://pact.fi/api/v1';
 const ALGOD = 'https://mainnet-api.algonode.cloud';
@@ -124,6 +127,7 @@ function recentRow(s, fee, proto) {
 		pool: s.poolId,
 		a: s.tokenIn?.symbol ?? '?',
 		b: s.tokenOut?.symbol ?? '?',
+		s: s.sender ?? null,
 		usd: round(s.usdValue, 4),
 		fee: round(fee, 6),
 		proto: round(proto, 6)
@@ -144,6 +148,9 @@ function algoPrice(s) {
 async function collect() {
 	const state = await loadState();
 	const nowS = Math.floor(Date.now() / 1000);
+	// First run with market rollups: this run's re-scan window counts every swap
+	// (seen or not) for the market, and the backfill covers what came before.
+	const firstMarket = initMarket(state);
 	const genesisMs = GENESIS_S * 1000;
 	const stopMs = Math.max(genesisMs, state.cursorTs - OVERLAP_MS);
 
@@ -160,9 +167,13 @@ async function collect() {
 		const rows = res.data ?? [];
 		for (const s of rows) {
 			if (s.ts < stopMs) break outer;
-			if (state.seen[s.id]) continue;
+			if (state.seen[s.id]) {
+				if (firstMarket && s.ts >= state.mk.since) marketSwap(state, s, swapFees(s, await poolConfig(state, s.poolId, nowS)), nowS);
+				continue;
+			}
 			const cfg = await poolConfig(state, s.poolId, nowS);
 			const f = swapFees(s, cfg);
+			marketSwap(state, s, f, nowS);
 			if (f.outlier) state.outliers.push({ id: s.id, pool: s.poolId, usd: s.usdValue, ts: s.ts });
 			const hour = Math.floor(s.ts / 1000 / HOUR_S) * HOUR_S;
 			const b = (state.hours[hour] ??= [0, 0, 0, 0]);
@@ -200,10 +211,25 @@ async function collect() {
 		console.warn(`rewards: skipped this run (${e.message})`);
 	}
 
+	// Market rollups: backfill, contract names, pool snapshots. Never blocks fees.
+	let marketLog = '';
+	try {
+		marketLog = await collectMarket(state, { getJSON, api: API, chain: CHAIN, poolConfig, swapFees, nowS });
+	} catch (e) {
+		marketLog = `skipped this run (${e.message})`;
+	}
+
 	await mkdir(dir, { recursive: true });
 	await writeFile(statePath, JSON.stringify(state));
 	const feed = buildFeed(state, nowS);
 	await writeFile(feedPath, JSON.stringify(feed));
+	try {
+		const market = JSON.stringify(buildMarket(state, nowS));
+		await writeFile(path.join(dir, 'market.json'), market);
+		console.log(`Market: ${marketLog || 'up to date'}. market.json ${(market.length / 1024).toFixed(1)} KB, state ${(JSON.stringify(state).length / 1024).toFixed(0)} KB.`);
+	} catch (e) {
+		console.warn(`market.json: not written (${e.message})`);
+	}
 	const all = feed.allTime;
 	console.log(
 		`+${added} swaps over ${pages} page(s). This month: total $${feed.total.toFixed(2)}, protocol $${feed.protocol.toFixed(2)}, ${feed.swaps} swaps. All time: $${all.total.toFixed(2)}. Feed ${(JSON.stringify(feed).length / 1024).toFixed(1)} KB.`
@@ -234,16 +260,31 @@ function buildFeed(state, nowS) {
 		// Hourly rows for the last 14 days (into last month too, so the 24h views
 		// stay whole after the 1st); daily rows for the rest of this month.
 		if (t >= cutoff) {
-			series.push([t, round(fee, 4), round(proto, 4), n]);
+			series.push([t, round(fee, 4), round(proto, 4), n, round(usd, 2)]);
 		} else if (t >= m0) {
 			const d = m0 + Math.floor((t - m0) / 86400) * 86400;
-			if (!day || day[0] !== d) series.push((day = [d, 0, 0, 0]));
+			if (!day || day[0] !== d) series.push((day = [d, 0, 0, 0, 0]));
 			day[1] = round(day[1] + fee, 4);
 			day[2] = round(day[2] + proto, 4);
 			day[3] += n;
+			day[4] = round(day[4] + usd, 2);
 		}
 	}
 	const cur = months.get(m0) ?? [0, 0, 0, 0];
+	// Fees per local day for last month and this one (month-vs-month pace).
+	const prevStart = periodStart(m0 - 1, state.genesis);
+	const dmap = new Map();
+	for (const [t, fee, proto, n, usd] of hours) {
+		if (t < prevStart) continue;
+		const d = dayStart(t);
+		const r = dmap.get(d) ?? [d, 0, 0, 0, 0];
+		r[1] += fee;
+		r[2] += proto;
+		r[3] += n;
+		r[4] += usd;
+		dmap.set(d, r);
+	}
+	const days = [...dmap.values()].sort((x, y) => x[0] - y[0]).map(([d, f, p, n, u]) => [d, round(f, 4), round(p, 4), n, round(u, 2)]);
 	const rw = rewardsFeed(state, cutoff, m0);
 
 	const pools = {};
@@ -271,6 +312,8 @@ function buildFeed(state, nowS) {
 		swaps: cur[2],
 		volume: round(cur[3], 2),
 		series,
+		/** [dayStart, fees, protocol, swaps, volume] per local day, last month and this month. */
+		days,
 		pools,
 		recent: state.recent,
 		outliers: state.outliers.length,

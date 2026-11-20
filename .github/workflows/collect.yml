@@ -42,6 +42,7 @@ jobs:
           cd data
           git init -q -b data
           git add state.json feed.json
+          if [ -f market.json ]; then git add market.json; fi
           git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
             commit -q -m "data $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data

@@ -1,0 +1,1785 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-20T09:39:16.403Z",
+  "title": "Design System: Pact Markets",
+  "extensions": {
+    "colorMeta": {
+      "page": {
+        "role": "neutral",
+        "displayName": "Map Paper",
+        "canonical": "oklch(96.3% 0.004 106.5)",
+        "mode": "light",
+        "cssVar": "--page",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#242423",
+          "#40403e",
+          "#5e5e5b",
+          "#80807e",
+          "#a5a5a2",
+          "#cbcbc8",
+          "#eeeeed"
+        ]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "Sheet",
+        "canonical": "oklch(99.1% 0.001 106.4)",
+        "mode": "light",
+        "cssVar": "--panel",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242423",
+          "#40403f",
+          "#5e5e5d",
+          "#80807f",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "sunk": {
+        "role": "neutral",
+        "displayName": "Sunk",
+        "canonical": "oklch(93.3% 0.007 97.4)",
+        "mode": "light",
+        "cssVar": "--sunk",
+        "tonalRamp": [
+          "#0c0b09",
+          "#252421",
+          "#40403c",
+          "#5e5e5a",
+          "#81807c",
+          "#a5a5a1",
+          "#cbcac7",
+          "#efeeeb"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "oklch(15.0% 0.000 89.9)",
+        "mode": "light",
+        "cssVar": "--ink",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "ink2": {
+        "role": "neutral",
+        "displayName": "Ink 2",
+        "canonical": "oklch(43.5% 0.005 91.5)",
+        "mode": "light",
+        "cssVar": "--ink2",
+        "tonalRamp": [
+          "#0c0b0a",
+          "#252422",
+          "#40403d",
+          "#5e5d5b",
+          "#81807d",
+          "#a5a4a2",
+          "#cbcac8",
+          "#efeeec"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "canonical": "oklch(52.4% 0.008 97.5)",
+        "mode": "light",
+        "cssVar": "--muted",
+        "tonalRamp": [
+          "#0c0b09",
+          "#252421",
+          "#41403c",
+          "#5f5e59",
+          "#81807b",
+          "#a5a5a0",
+          "#cbcac7",
+          "#efeeeb"
+        ]
+      },
+      "axis": {
+        "role": "neutral",
+        "displayName": "Axis",
+        "canonical": "oklch(56.5% 0.011 100.1)",
+        "mode": "light",
+        "cssVar": "--axis",
+        "tonalRamp": [
+          "#0c0b08",
+          "#252420",
+          "#41403b",
+          "#5f5e58",
+          "#81807a",
+          "#a6a59f",
+          "#cbcbc5",
+          "#efefea"
+        ]
+      },
+      "hair": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "oklch(90.6% 0.009 100.0)",
+        "mode": "light",
+        "cssVar": "--hair",
+        "tonalRamp": [
+          "#0c0b09",
+          "#252420",
+          "#41403b",
+          "#5f5e58",
+          "#81807a",
+          "#a5a59f",
+          "#cbcbc6",
+          "#efefea"
+        ]
+      },
+      "base": {
+        "role": "neutral",
+        "displayName": "Baseline",
+        "canonical": "oklch(81.2% 0.015 102.5)",
+        "mode": "light",
+        "cssVar": "--base",
+        "tonalRamp": [
+          "#0c0b07",
+          "#25241e",
+          "#414039",
+          "#5f5e55",
+          "#828177",
+          "#a6a59c",
+          "#cccbc3",
+          "#efefe8"
+        ]
+      },
+      "band": {
+        "role": "neutral",
+        "displayName": "Signage Band",
+        "canonical": "oklch(15.0% 0.000 89.9)",
+        "mode": "light",
+        "cssVar": "--band",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "band-ink": {
+        "role": "neutral",
+        "displayName": "Band Ink",
+        "canonical": "oklch(97.2% 0.004 106.5)",
+        "mode": "light",
+        "cssVar": "--band-ink",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#242423",
+          "#40403e",
+          "#5e5e5b",
+          "#80807e",
+          "#a5a5a2",
+          "#cbcbc8",
+          "#eeeeed"
+        ]
+      },
+      "band-2": {
+        "role": "neutral",
+        "displayName": "Band Secondary",
+        "canonical": "oklch(76.6% 0.010 100.0)",
+        "mode": "light",
+        "cssVar": "--band-2",
+        "tonalRamp": [
+          "#0c0b08",
+          "#252420",
+          "#41403b",
+          "#5f5e58",
+          "#81807a",
+          "#a6a59f",
+          "#cbcbc6",
+          "#efefea"
+        ]
+      },
+      "focus": {
+        "role": "primary",
+        "displayName": "Focus Blue",
+        "canonical": "oklch(57.5% 0.163 255.5)",
+        "mode": "light",
+        "cssVar": "--focus",
+        "tonalRamp": [
+          "#00082a",
+          "#00224e",
+          "#013e7e",
+          "#105cb0",
+          "#3880da",
+          "#69a7f7",
+          "#aacdfc",
+          "#e4f0ff"
+        ]
+      },
+      "up": {
+        "role": "tertiary",
+        "displayName": "Gain Green",
+        "canonical": "oklch(43.3% 0.147 142.5)",
+        "mode": "light",
+        "cssVar": "--up",
+        "tonalRamp": [
+          "#001100",
+          "#002e00",
+          "#064e05",
+          "#23701f",
+          "#489543",
+          "#76b870",
+          "#a3dc9d",
+          "#cdfec8"
+        ]
+      },
+      "down": {
+        "role": "tertiary",
+        "displayName": "Loss Red",
+        "canonical": "oklch(50.0% 0.182 29.5)",
+        "mode": "light",
+        "cssVar": "--down",
+        "tonalRamp": [
+          "#220000",
+          "#4c0000",
+          "#7c0401",
+          "#a8251a",
+          "#d34d3d",
+          "#f47c6b",
+          "#fdb6aa",
+          "#ffe9e5"
+        ]
+      },
+      "cmp": {
+        "role": "neutral",
+        "displayName": "Comparison",
+        "canonical": "oklch(76.6% 0.010 100.0)",
+        "mode": "light",
+        "cssVar": "--cmp",
+        "tonalRamp": [
+          "#0c0b08",
+          "#252420",
+          "#41403b",
+          "#5f5e58",
+          "#81807a",
+          "#a6a59f",
+          "#cbcbc6",
+          "#efefea"
+        ]
+      },
+      "l-hay": {
+        "role": "primary",
+        "displayName": "Hay Line Blue",
+        "canonical": "oklch(57.5% 0.163 255.5)",
+        "mode": "light",
+        "cssVar": "--l-hay",
+        "tonalRamp": [
+          "#00082a",
+          "#00224e",
+          "#013e7e",
+          "#105cb0",
+          "#3880da",
+          "#69a7f7",
+          "#aacdfc",
+          "#e4f0ff"
+        ]
+      },
+      "l-nkbd": {
+        "role": "secondary",
+        "displayName": "Signal Orange",
+        "canonical": "oklch(67.1% 0.175 40.6)",
+        "mode": "light",
+        "cssVar": "--l-nkbd",
+        "tonalRamp": [
+          "#200000",
+          "#431100",
+          "#6e2403",
+          "#9f3600",
+          "#cf5522",
+          "#ef825a",
+          "#feb79e",
+          "#ffe9e2"
+        ]
+      },
+      "l-q6ww": {
+        "role": "secondary",
+        "displayName": "Jade",
+        "canonical": "oklch(66.9% 0.141 162.1)",
+        "mode": "light",
+        "cssVar": "--l-q6ww",
+        "tonalRamp": [
+          "#001006",
+          "#012c1c",
+          "#0a4c33",
+          "#0a6f4c",
+          "#1e9669",
+          "#56bb8e",
+          "#8cdfb7",
+          "#c4fee0"
+        ]
+      },
+      "l-rcfx": {
+        "role": "secondary",
+        "displayName": "Amber",
+        "canonical": "oklch(76.4% 0.161 75.1)",
+        "mode": "light",
+        "cssVar": "--l-rcfx",
+        "tonalRamp": [
+          "#160700",
+          "#341f00",
+          "#583800",
+          "#7e5406",
+          "#a97418",
+          "#d59732",
+          "#f6c072",
+          "#feebd3"
+        ]
+      },
+      "l-deflex": {
+        "role": "secondary",
+        "displayName": "Rose",
+        "canonical": "oklch(71.6% 0.141 357.4)",
+        "mode": "light",
+        "cssVar": "--l-deflex",
+        "tonalRamp": [
+          "#1f000b",
+          "#460324",
+          "#6c1d40",
+          "#94375e",
+          "#bd5a81",
+          "#df84a5",
+          "#fcb2cb",
+          "#fee8ee"
+        ]
+      },
+      "l-vestige": {
+        "role": "secondary",
+        "displayName": "Line Green",
+        "canonical": "oklch(52.9% 0.180 142.5)",
+        "mode": "light",
+        "cssVar": "--l-vestige",
+        "tonalRamp": [
+          "#001100",
+          "#002e00",
+          "#014f01",
+          "#12720f",
+          "#33982e",
+          "#68bc62",
+          "#98e092",
+          "#ccffc7"
+        ]
+      },
+      "l-bots": {
+        "role": "secondary",
+        "displayName": "Platform Grey",
+        "canonical": "oklch(62.9% 0.007 97.4)",
+        "mode": "light",
+        "cssVar": "--l-bots",
+        "tonalRamp": [
+          "#0c0b09",
+          "#252421",
+          "#40403c",
+          "#5f5e59",
+          "#81807c",
+          "#a5a5a0",
+          "#cbcac7",
+          "#efeeeb"
+        ]
+      },
+      "l-wallets": {
+        "role": "secondary",
+        "displayName": "Violet",
+        "canonical": "oklch(52.7% 0.197 283.4)",
+        "mode": "light",
+        "cssVar": "--l-wallets",
+        "tonalRamp": [
+          "#0b0032",
+          "#220963",
+          "#3a2890",
+          "#5645bf",
+          "#766aea",
+          "#9996ff",
+          "#c3c5fd",
+          "#ecedff"
+        ]
+      },
+      "on-hay": {
+        "role": "on-color",
+        "displayName": "Ink on Hay Line Blue",
+        "canonical": "oklch(100.0% 0.000 89.9)",
+        "mode": "light",
+        "cssVar": "--on-hay",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "on-nkbd": {
+        "role": "on-color",
+        "displayName": "Ink on Signal Orange",
+        "canonical": "oklch(15.0% 0.000 89.9)",
+        "mode": "light",
+        "cssVar": "--on-nkbd",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "on-q6ww": {
+        "role": "on-color",
+        "displayName": "Ink on Jade",
+        "canonical": "oklch(15.0% 0.000 89.9)",
+        "mode": "light",
+        "cssVar": "--on-q6ww",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "on-rcfx": {
+        "role": "on-color",
+        "displayName": "Ink on Amber",
+        "canonical": "oklch(15.0% 0.000 89.9)",
+        "mode": "light",
+        "cssVar": "--on-rcfx",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "on-deflex": {
+        "role": "on-color",
+        "displayName": "Ink on Rose",
+        "canonical": "oklch(15.0% 0.000 89.9)",
+        "mode": "light",
+        "cssVar": "--on-deflex",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "on-vestige": {
+        "role": "on-color",
+        "displayName": "Ink on Line Green",
+        "canonical": "oklch(100.0% 0.000 89.9)",
+        "mode": "light",
+        "cssVar": "--on-vestige",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "on-bots": {
+        "role": "on-color",
+        "displayName": "Ink on Platform Grey",
+        "canonical": "oklch(15.0% 0.000 89.9)",
+        "mode": "light",
+        "cssVar": "--on-bots",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "on-wallets": {
+        "role": "on-color",
+        "displayName": "Ink on Violet",
+        "canonical": "oklch(100.0% 0.000 89.9)",
+        "mode": "light",
+        "cssVar": "--on-wallets",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "buy": {
+        "role": "primary",
+        "displayName": "Buy Blue",
+        "canonical": "oklch(57.5% 0.163 255.5)",
+        "mode": "light",
+        "cssVar": "--buy",
+        "tonalRamp": [
+          "#00082a",
+          "#00224e",
+          "#013e7e",
+          "#105cb0",
+          "#3880da",
+          "#69a7f7",
+          "#aacdfc",
+          "#e4f0ff"
+        ]
+      },
+      "sell": {
+        "role": "tertiary",
+        "displayName": "Sell Red",
+        "canonical": "oklch(62.3% 0.191 24.9)",
+        "mode": "light",
+        "cssVar": "--sell",
+        "tonalRamp": [
+          "#230000",
+          "#4b0006",
+          "#7a0813",
+          "#ab1b24",
+          "#d74745",
+          "#f87871",
+          "#fcb6b0",
+          "#fee9e7"
+        ]
+      },
+      "q0": {
+        "role": "sequential",
+        "displayName": "Heatmap Q0",
+        "canonical": "oklch(96.5% 0.012 255.5)",
+        "mode": "light",
+        "cssVar": "--q0",
+        "tonalRamp": [
+          "#090b0e",
+          "#212428",
+          "#3c4045",
+          "#595e64",
+          "#7c8187",
+          "#a0a5ab",
+          "#c7cbd0",
+          "#ebeff4"
+        ]
+      },
+      "q1": {
+        "role": "sequential",
+        "displayName": "Heatmap Q1",
+        "canonical": "oklch(90.5% 0.041 252.8)",
+        "mode": "light",
+        "cssVar": "--q1",
+        "tonalRamp": [
+          "#050c15",
+          "#1a2532",
+          "#334151",
+          "#4e5f73",
+          "#708297",
+          "#96a6ba",
+          "#beccde",
+          "#e4f0fe"
+        ]
+      },
+      "q2": {
+        "role": "sequential",
+        "displayName": "Heatmap Q2",
+        "canonical": "oklch(81.2% 0.079 253.4)",
+        "mode": "light",
+        "cssVar": "--q2",
+        "tonalRamp": [
+          "#000b1e",
+          "#0e253e",
+          "#264161",
+          "#3f6086",
+          "#6083ac",
+          "#88a7cd",
+          "#b2cdef",
+          "#e4f0ff"
+        ]
+      },
+      "q3": {
+        "role": "sequential",
+        "displayName": "Heatmap Q3",
+        "canonical": "oklch(71.7% 0.118 253.6)",
+        "mode": "light",
+        "cssVar": "--q3",
+        "tonalRamp": [
+          "#000925",
+          "#00234b",
+          "#134071",
+          "#2b5f9a",
+          "#4d83c2",
+          "#78a8e1",
+          "#a8cefd",
+          "#e4f0ff"
+        ]
+      },
+      "q4": {
+        "role": "sequential",
+        "displayName": "Heatmap Q4",
+        "canonical": "oklch(62.2% 0.161 255.1)",
+        "mode": "light",
+        "cssVar": "--q4",
+        "tonalRamp": [
+          "#000927",
+          "#00234e",
+          "#003e7e",
+          "#0e5caf",
+          "#3881d9",
+          "#68a7f7",
+          "#aacdfc",
+          "#e4f0ff"
+        ]
+      },
+      "q5": {
+        "role": "sequential",
+        "displayName": "Heatmap Q5",
+        "canonical": "oklch(52.7% 0.150 255.9)",
+        "mode": "light",
+        "cssVar": "--q5",
+        "tonalRamp": [
+          "#00082a",
+          "#00224e",
+          "#033e7e",
+          "#1d5caa",
+          "#4181d3",
+          "#6fa7f1",
+          "#aacdfc",
+          "#e4f0ff"
+        ]
+      },
+      "q6": {
+        "role": "sequential",
+        "displayName": "Heatmap Q6",
+        "canonical": "oklch(43.3% 0.128 256.5)",
+        "mode": "light",
+        "cssVar": "--q6",
+        "tonalRamp": [
+          "#00072a",
+          "#00224f",
+          "#143f76",
+          "#2c5d9f",
+          "#4d81c8",
+          "#78a7e7",
+          "#aacdfd",
+          "#e4f0ff"
+        ]
+      },
+      "tip-bg": {
+        "role": "neutral",
+        "displayName": "Tooltip Ground",
+        "canonical": "oklch(15.0% 0.000 89.9)",
+        "mode": "light",
+        "cssVar": "--tip-bg",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "tip-ink": {
+        "role": "neutral",
+        "displayName": "Tooltip Ink",
+        "canonical": "oklch(97.2% 0.004 106.5)",
+        "mode": "light",
+        "cssVar": "--tip-ink",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#242423",
+          "#40403e",
+          "#5e5e5b",
+          "#80807e",
+          "#a5a5a2",
+          "#cbcbc8",
+          "#eeeeed"
+        ]
+      },
+      "tip-2": {
+        "role": "neutral",
+        "displayName": "Tooltip Secondary",
+        "canonical": "oklch(76.6% 0.010 100.0)",
+        "mode": "light",
+        "cssVar": "--tip-2",
+        "tonalRamp": [
+          "#0c0b08",
+          "#252420",
+          "#41403b",
+          "#5f5e58",
+          "#81807a",
+          "#a6a59f",
+          "#cbcbc6",
+          "#efefea"
+        ]
+      },
+      "page-dark": {
+        "role": "neutral",
+        "displayName": "Map Paper (dark)",
+        "canonical": "oklch(15.9% 0.000 89.9)",
+        "mode": "dark",
+        "cssVar": "--page",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "panel-dark": {
+        "role": "neutral",
+        "displayName": "Sheet (dark)",
+        "canonical": "oklch(21.7% 0.002 106.6)",
+        "mode": "dark",
+        "cssVar": "--panel",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242423",
+          "#40403f",
+          "#5e5e5c",
+          "#80807f",
+          "#a5a5a3",
+          "#cacac9",
+          "#eeeeee"
+        ]
+      },
+      "sunk-dark": {
+        "role": "neutral",
+        "displayName": "Sunk (dark)",
+        "canonical": "oklch(26.8% 0.004 106.6)",
+        "mode": "dark",
+        "cssVar": "--sunk",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#242423",
+          "#40403e",
+          "#5e5e5c",
+          "#80807e",
+          "#a5a5a2",
+          "#cacac9",
+          "#eeeeed"
+        ]
+      },
+      "ink-dark": {
+        "role": "neutral",
+        "displayName": "Ink (dark)",
+        "canonical": "oklch(95.2% 0.004 91.4)",
+        "mode": "dark",
+        "cssVar": "--ink",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#242422",
+          "#40403e",
+          "#5e5d5b",
+          "#81807e",
+          "#a5a4a2",
+          "#cbcac8",
+          "#efeeed"
+        ]
+      },
+      "ink2-dark": {
+        "role": "neutral",
+        "displayName": "Ink 2 (dark)",
+        "canonical": "oklch(81.2% 0.015 102.5)",
+        "mode": "dark",
+        "cssVar": "--ink2",
+        "tonalRamp": [
+          "#0c0b07",
+          "#25241e",
+          "#414039",
+          "#5f5e55",
+          "#828177",
+          "#a6a59c",
+          "#cccbc3",
+          "#efefe8"
+        ]
+      },
+      "muted-dark": {
+        "role": "neutral",
+        "displayName": "Muted (dark)",
+        "canonical": "oklch(71.1% 0.010 100.0)",
+        "mode": "dark",
+        "cssVar": "--muted",
+        "tonalRamp": [
+          "#0c0b08",
+          "#252420",
+          "#41403b",
+          "#5f5e58",
+          "#81807a",
+          "#a6a59f",
+          "#cbcbc5",
+          "#efefea"
+        ]
+      },
+      "axis-dark": {
+        "role": "neutral",
+        "displayName": "Axis (dark)",
+        "canonical": "oklch(64.6% 0.009 99.0)",
+        "mode": "dark",
+        "cssVar": "--axis",
+        "tonalRamp": [
+          "#0c0b09",
+          "#252421",
+          "#41403c",
+          "#5f5e59",
+          "#81807b",
+          "#a5a5a0",
+          "#cbcbc6",
+          "#efeeeb"
+        ]
+      },
+      "hair-dark": {
+        "role": "neutral",
+        "displayName": "Hairline (dark)",
+        "canonical": "oklch(29.2% 0.004 106.6)",
+        "mode": "dark",
+        "cssVar": "--hair",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#242423",
+          "#40403e",
+          "#5e5e5c",
+          "#80807e",
+          "#a5a5a3",
+          "#cacac9",
+          "#eeeeed"
+        ]
+      },
+      "base-dark": {
+        "role": "neutral",
+        "displayName": "Baseline (dark)",
+        "canonical": "oklch(35.9% 0.005 106.7)",
+        "mode": "dark",
+        "cssVar": "--base",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#242422",
+          "#40403d",
+          "#5e5e5b",
+          "#80807d",
+          "#a5a5a2",
+          "#cbcbc8",
+          "#eeefec"
+        ]
+      },
+      "band-dark": {
+        "role": "neutral",
+        "displayName": "Signage Band (dark)",
+        "canonical": "oklch(0.0% 0.000 0.0)",
+        "mode": "dark",
+        "cssVar": "--band",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "band-ink-dark": {
+        "role": "neutral",
+        "displayName": "Band Ink (dark)",
+        "canonical": "oklch(95.2% 0.004 91.4)",
+        "mode": "dark",
+        "cssVar": "--band-ink",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#242422",
+          "#40403e",
+          "#5e5d5b",
+          "#81807e",
+          "#a5a4a2",
+          "#cbcac8",
+          "#efeeed"
+        ]
+      },
+      "band-2-dark": {
+        "role": "neutral",
+        "displayName": "Band Secondary (dark)",
+        "canonical": "oklch(71.1% 0.010 100.0)",
+        "mode": "dark",
+        "cssVar": "--band-2",
+        "tonalRamp": [
+          "#0c0b08",
+          "#252420",
+          "#41403b",
+          "#5f5e58",
+          "#81807a",
+          "#a6a59f",
+          "#cbcbc5",
+          "#efefea"
+        ]
+      },
+      "focus-dark": {
+        "role": "primary",
+        "displayName": "Focus Blue (dark)",
+        "canonical": "oklch(62.2% 0.161 255.1)",
+        "mode": "dark",
+        "cssVar": "--focus",
+        "tonalRamp": [
+          "#000927",
+          "#00234e",
+          "#003e7e",
+          "#0e5caf",
+          "#3881d9",
+          "#68a7f7",
+          "#aacdfc",
+          "#e4f0ff"
+        ]
+      },
+      "up-dark": {
+        "role": "tertiary",
+        "displayName": "Gain Green (dark)",
+        "canonical": "oklch(70.9% 0.201 143.1)",
+        "mode": "dark",
+        "cssVar": "--up",
+        "tonalRamp": [
+          "#001100",
+          "#002e01",
+          "#074e09",
+          "#04720c",
+          "#189b1d",
+          "#5cbe59",
+          "#90e28c",
+          "#cdfec9"
+        ]
+      },
+      "down-dark": {
+        "role": "tertiary",
+        "displayName": "Loss Red (dark)",
+        "canonical": "oklch(68.6% 0.166 27.9)",
+        "mode": "dark",
+        "cssVar": "--down",
+        "tonalRamp": [
+          "#210000",
+          "#4c0001",
+          "#771210",
+          "#a32e27",
+          "#cd5348",
+          "#ee8073",
+          "#fdb6ac",
+          "#fee9e6"
+        ]
+      },
+      "cmp-dark": {
+        "role": "neutral",
+        "displayName": "Comparison (dark)",
+        "canonical": "oklch(47.1% 0.006 95.2)",
+        "mode": "dark",
+        "cssVar": "--cmp",
+        "tonalRamp": [
+          "#0c0b09",
+          "#252422",
+          "#40403d",
+          "#5e5e5a",
+          "#81807c",
+          "#a5a5a1",
+          "#cbcac7",
+          "#efeeec"
+        ]
+      },
+      "l-hay-dark": {
+        "role": "primary",
+        "displayName": "Hay Line Blue (dark)",
+        "canonical": "oklch(62.2% 0.161 255.1)",
+        "mode": "dark",
+        "cssVar": "--l-hay",
+        "tonalRamp": [
+          "#000927",
+          "#00234e",
+          "#003e7e",
+          "#0e5caf",
+          "#3881d9",
+          "#68a7f7",
+          "#aacdfc",
+          "#e4f0ff"
+        ]
+      },
+      "l-nkbd-dark": {
+        "role": "secondary",
+        "displayName": "Signal Orange (dark)",
+        "canonical": "oklch(62.2% 0.173 40.1)",
+        "mode": "dark",
+        "cssVar": "--l-nkbd",
+        "tonalRamp": [
+          "#200000",
+          "#450e00",
+          "#6d2506",
+          "#9f3604",
+          "#ce5526",
+          "#ef825c",
+          "#fdb89f",
+          "#fee9e2"
+        ]
+      },
+      "l-q6ww-dark": {
+        "role": "secondary",
+        "displayName": "Jade (dark)",
+        "canonical": "oklch(62.1% 0.128 163.1)",
+        "mode": "dark",
+        "cssVar": "--l-q6ww",
+        "tonalRamp": [
+          "#001007",
+          "#012c1c",
+          "#094c34",
+          "#096f4d",
+          "#1d966b",
+          "#5eba92",
+          "#92deba",
+          "#c4fee1"
+        ]
+      },
+      "l-rcfx-dark": {
+        "role": "secondary",
+        "displayName": "Amber (dark)",
+        "canonical": "oklch(67.0% 0.143 73.2)",
+        "mode": "dark",
+        "cssVar": "--l-rcfx",
+        "tonalRamp": [
+          "#170700",
+          "#341f00",
+          "#583803",
+          "#805300",
+          "#ac730c",
+          "#d19848",
+          "#f3c17f",
+          "#feebd4"
+        ]
+      },
+      "l-deflex-dark": {
+        "role": "secondary",
+        "displayName": "Rose (dark)",
+        "canonical": "oklch(62.2% 0.171 0.8)",
+        "mode": "dark",
+        "cssVar": "--l-deflex",
+        "tonalRamp": [
+          "#200009",
+          "#470121",
+          "#750b3b",
+          "#a02858",
+          "#ca4e7b",
+          "#eb7c9f",
+          "#ffb1c7",
+          "#fee8ed"
+        ]
+      },
+      "l-vestige-dark": {
+        "role": "secondary",
+        "displayName": "Line Green (dark)",
+        "canonical": "oklch(52.9% 0.180 142.5)",
+        "mode": "dark",
+        "cssVar": "--l-vestige",
+        "tonalRamp": [
+          "#001100",
+          "#002e00",
+          "#014f01",
+          "#12720f",
+          "#33982e",
+          "#68bc62",
+          "#98e092",
+          "#ccffc7"
+        ]
+      },
+      "l-bots-dark": {
+        "role": "secondary",
+        "displayName": "Platform Grey (dark)",
+        "canonical": "oklch(56.5% 0.011 100.1)",
+        "mode": "dark",
+        "cssVar": "--l-bots",
+        "tonalRamp": [
+          "#0c0b08",
+          "#252420",
+          "#41403b",
+          "#5f5e58",
+          "#81807a",
+          "#a6a59f",
+          "#cbcbc5",
+          "#efefea"
+        ]
+      },
+      "l-wallets-dark": {
+        "role": "secondary",
+        "displayName": "Violet (dark)",
+        "canonical": "oklch(67.0% 0.145 286.8)",
+        "mode": "dark",
+        "cssVar": "--l-wallets",
+        "tonalRamp": [
+          "#0c002d",
+          "#231652",
+          "#3e317a",
+          "#5a4ea5",
+          "#7c71ce",
+          "#9f98ec",
+          "#c6c3fd",
+          "#edecff"
+        ]
+      },
+      "on-hay-dark": {
+        "role": "on-color",
+        "displayName": "Ink on Hay Line Blue (dark)",
+        "canonical": "oklch(15.0% 0.000 89.9)",
+        "mode": "dark",
+        "cssVar": "--on-hay",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "on-nkbd-dark": {
+        "role": "on-color",
+        "displayName": "Ink on Signal Orange (dark)",
+        "canonical": "oklch(15.0% 0.000 89.9)",
+        "mode": "dark",
+        "cssVar": "--on-nkbd",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "on-q6ww-dark": {
+        "role": "on-color",
+        "displayName": "Ink on Jade (dark)",
+        "canonical": "oklch(15.0% 0.000 89.9)",
+        "mode": "dark",
+        "cssVar": "--on-q6ww",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "on-rcfx-dark": {
+        "role": "on-color",
+        "displayName": "Ink on Amber (dark)",
+        "canonical": "oklch(15.0% 0.000 89.9)",
+        "mode": "dark",
+        "cssVar": "--on-rcfx",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "on-deflex-dark": {
+        "role": "on-color",
+        "displayName": "Ink on Rose (dark)",
+        "canonical": "oklch(15.0% 0.000 89.9)",
+        "mode": "dark",
+        "cssVar": "--on-deflex",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "on-vestige-dark": {
+        "role": "on-color",
+        "displayName": "Ink on Line Green (dark)",
+        "canonical": "oklch(100.0% 0.000 89.9)",
+        "mode": "dark",
+        "cssVar": "--on-vestige",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "on-bots-dark": {
+        "role": "on-color",
+        "displayName": "Ink on Platform Grey (dark)",
+        "canonical": "oklch(100.0% 0.000 89.9)",
+        "mode": "dark",
+        "cssVar": "--on-bots",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "on-wallets-dark": {
+        "role": "on-color",
+        "displayName": "Ink on Violet (dark)",
+        "canonical": "oklch(15.0% 0.000 89.9)",
+        "mode": "dark",
+        "cssVar": "--on-wallets",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "buy-dark": {
+        "role": "primary",
+        "displayName": "Buy Blue (dark)",
+        "canonical": "oklch(62.2% 0.161 255.1)",
+        "mode": "dark",
+        "cssVar": "--buy",
+        "tonalRamp": [
+          "#000927",
+          "#00234e",
+          "#003e7e",
+          "#0e5caf",
+          "#3881d9",
+          "#68a7f7",
+          "#aacdfc",
+          "#e4f0ff"
+        ]
+      },
+      "sell-dark": {
+        "role": "tertiary",
+        "displayName": "Sell Red (dark)",
+        "canonical": "oklch(66.9% 0.159 22.3)",
+        "mode": "dark",
+        "cssVar": "--sell",
+        "tonalRamp": [
+          "#220000",
+          "#4a010a",
+          "#75151d",
+          "#a03035",
+          "#ca5555",
+          "#ec817e",
+          "#ffb4b1",
+          "#fee9e7"
+        ]
+      },
+      "q0-dark": {
+        "role": "sequential",
+        "displayName": "Heatmap Q0 (dark)",
+        "canonical": "oklch(26.3% 0.023 259.3)",
+        "mode": "dark",
+        "cssVar": "--q0",
+        "tonalRamp": [
+          "#080b11",
+          "#1f242c",
+          "#3a404a",
+          "#565e6a",
+          "#79818e",
+          "#9ea5b1",
+          "#c4cbd5",
+          "#e9eff8"
+        ]
+      },
+      "q1-dark": {
+        "role": "sequential",
+        "displayName": "Heatmap Q1 (dark)",
+        "canonical": "oklch(31.7% 0.068 258.0)",
+        "mode": "dark",
+        "cssVar": "--q1",
+        "tonalRamp": [
+          "#020b1c",
+          "#15243b",
+          "#2d405d",
+          "#475f81",
+          "#6882a7",
+          "#8fa6c8",
+          "#b8ccea",
+          "#e5effe"
+        ]
+      },
+      "q2-dark": {
+        "role": "sequential",
+        "displayName": "Heatmap Q2 (dark)",
+        "canonical": "oklch(43.3% 0.128 256.5)",
+        "mode": "dark",
+        "cssVar": "--q2",
+        "tonalRamp": [
+          "#00072a",
+          "#00224f",
+          "#143f76",
+          "#2c5d9f",
+          "#4d81c8",
+          "#78a7e7",
+          "#aacdfd",
+          "#e4f0ff"
+        ]
+      },
+      "q3-dark": {
+        "role": "sequential",
+        "displayName": "Heatmap Q3 (dark)",
+        "canonical": "oklch(52.7% 0.150 255.9)",
+        "mode": "dark",
+        "cssVar": "--q3",
+        "tonalRamp": [
+          "#00082a",
+          "#00224e",
+          "#033e7e",
+          "#1d5caa",
+          "#4181d3",
+          "#6fa7f1",
+          "#aacdfc",
+          "#e4f0ff"
+        ]
+      },
+      "q4-dark": {
+        "role": "sequential",
+        "displayName": "Heatmap Q4 (dark)",
+        "canonical": "oklch(62.2% 0.161 255.1)",
+        "mode": "dark",
+        "cssVar": "--q4",
+        "tonalRamp": [
+          "#000927",
+          "#00234e",
+          "#003e7e",
+          "#0e5caf",
+          "#3881d9",
+          "#68a7f7",
+          "#aacdfc",
+          "#e4f0ff"
+        ]
+      },
+      "q5-dark": {
+        "role": "sequential",
+        "displayName": "Heatmap Q5 (dark)",
+        "canonical": "oklch(71.7% 0.118 253.6)",
+        "mode": "dark",
+        "cssVar": "--q5",
+        "tonalRamp": [
+          "#000925",
+          "#00234b",
+          "#134071",
+          "#2b5f9a",
+          "#4d83c2",
+          "#78a8e1",
+          "#a8cefd",
+          "#e4f0ff"
+        ]
+      },
+      "q6-dark": {
+        "role": "sequential",
+        "displayName": "Heatmap Q6 (dark)",
+        "canonical": "oklch(85.8% 0.057 254.1)",
+        "mode": "dark",
+        "cssVar": "--q6",
+        "tonalRamp": [
+          "#030b19",
+          "#162537",
+          "#2e4158",
+          "#495f7c",
+          "#6a82a1",
+          "#90a7c3",
+          "#b9cde5",
+          "#e4f0fe"
+        ]
+      },
+      "tip-bg-dark": {
+        "role": "neutral",
+        "displayName": "Tooltip Ground (dark)",
+        "canonical": "oklch(95.2% 0.004 91.4)",
+        "mode": "dark",
+        "cssVar": "--tip-bg",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#242422",
+          "#40403e",
+          "#5e5d5b",
+          "#81807e",
+          "#a5a4a2",
+          "#cbcac8",
+          "#efeeed"
+        ]
+      },
+      "tip-ink-dark": {
+        "role": "neutral",
+        "displayName": "Tooltip Ink (dark)",
+        "canonical": "oklch(15.0% 0.000 89.9)",
+        "mode": "dark",
+        "cssVar": "--tip-ink",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "tip-2-dark": {
+        "role": "neutral",
+        "displayName": "Tooltip Secondary (dark)",
+        "canonical": "oklch(43.5% 0.005 91.5)",
+        "mode": "dark",
+        "cssVar": "--tip-2",
+        "tonalRamp": [
+          "#0c0b0a",
+          "#252422",
+          "#40403d",
+          "#5e5d5b",
+          "#81807d",
+          "#a5a4a2",
+          "#cbcac8",
+          "#efeeec"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The month's fee figure only."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Secondary big figures: block rewards, ALGO/USD price."
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "Stat values in fact grids (22px in summary rows)."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Panel headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Base text."
+      },
+      "table": {
+        "displayName": "Table",
+        "purpose": "Table cells, segment buttons, live-swap rows; tabular figures."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Panel subtitles, notes, legends, table headers (12px)."
+      },
+      "axis": {
+        "displayName": "Axis",
+        "purpose": "Chart axes and map sub-labels; tabular figures."
+      },
+      "bullet": {
+        "displayName": "Bullet",
+        "purpose": "The letter inside a line bullet."
+      }
+    },
+    "fonts": [
+      {
+        "family": "Helvetica Neue",
+        "source": "system"
+      },
+      {
+        "family": "Heros",
+        "source": "self-hosted TeX Gyre Heros Latin subsets (GUST Font License)",
+        "weights": [
+          400,
+          700
+        ],
+        "files": [
+          "scriptable/fonts/heros-400.woff2",
+          "scriptable/fonts/heros-700.woff2"
+        ],
+        "display": "swap"
+      },
+      {
+        "family": "Segoe UI",
+        "source": "system fallback"
+      }
+    ],
+    "themes": {
+      "light": ":root",
+      "dark": ":root under prefers-color-scheme: dark (unless [data-theme='light']), and :root[data-theme='dark']",
+      "darkTokenSuffix": "-dark"
+    },
+    "lineOrder": [
+      "hay",
+      "nkbd",
+      "q6ww",
+      "rcfx",
+      "deflex",
+      "vestige",
+      "bots",
+      "wallets"
+    ],
+    "lineCodes": {
+      "hay": "H",
+      "nkbd": "N",
+      "q6ww": "Q",
+      "rcfx": "R",
+      "deflex": "D",
+      "vestige": "V",
+      "bots": "B",
+      "wallets": "W"
+    },
+    "bandFixedColors": {
+      "status-idle": "#77766f",
+      "status-live": "#3fbf3f",
+      "status-warn": "#eda100",
+      "price-up": "#6fd36f",
+      "price-down": "#ff8a7a",
+      "theme-hover-bg": "rgba(255, 255, 255, 0.08)"
+    },
+    "shadows": [
+      {
+        "name": "pressed-segment",
+        "value": "0 1px 2px rgba(0, 0, 0, 0.14)",
+        "purpose": "Selected button in a segmented control only."
+      },
+      {
+        "name": "tooltip",
+        "value": "0 8px 24px rgba(0, 0, 0, 0.28)",
+        "purpose": "Floating chart and map tooltip only."
+      }
+    ],
+    "focus": {
+      "outline": "2px solid var(--focus)",
+      "offset": "2px",
+      "radius": "3px"
+    },
+    "motion": [
+      {
+        "name": "tip-fade",
+        "value": "opacity 0.12s",
+        "purpose": "Tooltip show and hide."
+      },
+      {
+        "name": "highlight-dim",
+        "value": "opacity 0.15s",
+        "purpose": "Dimming unrelated lines, stops and segments on hover (to 0.18 on the map, 0.25 on the trunk)."
+      },
+      {
+        "name": "fresh-row",
+        "value": "2.4s ease-out, background sunk to transparent",
+        "purpose": "A new live-swap row arriving; the only arrival motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "phone",
+        "value": "max-width: 560px"
+      },
+      {
+        "name": "map-narrow",
+        "value": "flow-map panel width under 640px"
+      },
+      {
+        "name": "desktop",
+        "value": "min-width: 980px"
+      },
+      {
+        "name": "container",
+        "value": "1320px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Signage Band and Tabs",
+      "kind": "nav",
+      "refersTo": "band",
+      "description": "Sticky black band with brand, live status, ALGO price and underline tabs.",
+      "html": "<header class=\"ds-band\"><div class=\"ds-band-row\"><div class=\"ds-brand\"><b>Pact</b><span>Markets</span></div><div class=\"ds-status\"><span class=\"ds-dot\"></span>Live</div><div class=\"ds-px\">ALGO <b>$0.0761</b><span>-2.31%</span></div></div><nav class=\"ds-tabs\" role=\"tablist\"><button class=\"ds-tab\" role=\"tab\" aria-selected=\"true\">Overview</button><button class=\"ds-tab\" role=\"tab\">Flow</button><button class=\"ds-tab\" role=\"tab\">Pools</button><button class=\"ds-tab\" role=\"tab\">Tokens</button><button class=\"ds-tab\" role=\"tab\">vs Tinyman</button></nav></header>",
+      "css": ".ds-band{background:var(--band,#0b0b0b);color:var(--band-ink,#f6f6f3);padding:0 16px;border-bottom:1px solid var(--hair,#e1e0d9);font-family:'Helvetica Neue','Heros','Segoe UI',system-ui,sans-serif}.ds-band-row{display:flex;align-items:center;gap:14px;min-height:50px}.ds-brand{display:flex;align-items:baseline;gap:8px;margin-right:auto}.ds-brand b{font-size:19px;font-weight:700;letter-spacing:-0.02em}.ds-brand span{font-size:15px;color:var(--band-2,#b4b3ac)}.ds-status{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--band-2,#b4b3ac)}.ds-dot{width:8px;height:8px;border-radius:50%;background:#3fbf3f}.ds-px{display:flex;align-items:baseline;gap:6px;font-size:13px;font-variant-numeric:tabular-nums}.ds-px span{font-size:12px;color:#ff8a7a}.ds-tabs{display:flex;gap:22px}.ds-tab{height:40px;font-family:inherit;font-size:14px;font-weight:600;color:var(--band-2,#b4b3ac);background:none;border:0;border-bottom:3px solid transparent;padding:0;cursor:pointer}.ds-tab:hover{color:var(--band-ink,#f6f6f3)}.ds-tab[aria-selected='true']{color:var(--band-ink,#f6f6f3);border-bottom-color:var(--band-ink,#f6f6f3)}.ds-tab:focus-visible{outline:2px solid var(--focus,#2a78d6);outline-offset:2px;border-radius:3px}"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Flat sheet on map paper with a hairline edge; title left, muted subtitle right.",
+      "html": "<section class=\"ds-panel\"><div class=\"ds-ph\"><h2>Monthly fees</h2><span>Since launch</span></div><p class=\"ds-note\">Fees are counted from on-chain fee splits per pool.</p></section>",
+      "css": ".ds-panel{background:var(--panel,#fcfcfb);border:1px solid var(--hair,#e1e0d9);border-radius:6px;padding:16px;color:var(--ink,#0b0b0b);font:14px/1.45 'Helvetica Neue','Heros','Segoe UI',system-ui,sans-serif}.ds-ph{display:flex;align-items:baseline;justify-content:space-between;gap:6px 12px;flex-wrap:wrap;margin-bottom:14px}.ds-ph h2{margin:0;font-size:15px;font-weight:700;letter-spacing:-0.005em}.ds-ph span,.ds-note{font-size:12.5px;color:var(--muted,#6b6a65);margin:0}"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "button",
+      "refersTo": "seg-control",
+      "description": "Time-window and filter switch: sunk track; the pressed segment lifts as a sheet.",
+      "html": "<div class=\"ds-seg\" role=\"group\" aria-label=\"Time window\"><button aria-pressed=\"true\">24h</button><button aria-pressed=\"false\">7 days</button><button aria-pressed=\"false\">30 days</button></div>",
+      "css": ".ds-seg{display:inline-flex;padding:2px;border-radius:6px;background:var(--sunk,#eae9e4);font-family:'Helvetica Neue','Heros','Segoe UI',system-ui,sans-serif}.ds-seg button{height:30px;padding:0 13px;border:0;border-radius:4px;background:none;font-family:inherit;font-size:13px;font-weight:600;color:var(--ink2,#52514e);cursor:pointer}.ds-seg button:hover{color:var(--ink,#0b0b0b)}.ds-seg button[aria-pressed='true']{background:var(--panel,#fcfcfb);color:var(--ink,#0b0b0b);box-shadow:0 1px 2px rgba(0,0,0,0.14)}.ds-seg button:focus-visible{outline:2px solid var(--focus,#2a78d6);outline-offset:2px}"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "search",
+      "description": "Toolbar search: sheet fill, hairline, 6px corners.",
+      "html": "<input class=\"ds-search\" type=\"search\" placeholder=\"Search token or pool id\" aria-label=\"Search pools\">",
+      "css": ".ds-search{height:34px;width:200px;padding:0 10px;border-radius:6px;border:1px solid var(--hair,#e1e0d9);background:var(--panel,#fcfcfb);color:var(--ink,#0b0b0b);font:13px 'Helvetica Neue','Heros','Segoe UI',system-ui,sans-serif}.ds-search::placeholder{color:var(--muted,#6b6a65)}.ds-search:focus-visible{outline:2px solid var(--focus,#2a78d6);outline-offset:2px}"
+    },
+    {
+      "name": "Line Bullets",
+      "kind": "chip",
+      "refersTo": "line-bullet",
+      "description": "One lettered disc per order-flow line, in fixed order, each with its own ink token.",
+      "html": "<div class=\"ds-legend\"><span class=\"ds-k\"><i class=\"ds-bul ds-hay\">H</i>Hay router</span><span class=\"ds-k\"><i class=\"ds-bul ds-nkbd\">N</i>NKBD arb</span><span class=\"ds-k\"><i class=\"ds-bul ds-q6ww\">Q</i>Q6WW arb</span><span class=\"ds-k\"><i class=\"ds-bul ds-rcfx\">R</i>RCFX bot</span><span class=\"ds-k\"><i class=\"ds-bul ds-deflex\">D</i>Deflex</span><span class=\"ds-k\"><i class=\"ds-bul ds-vestige\">V</i>Vestige</span><span class=\"ds-k\"><i class=\"ds-bul ds-bots\">B</i>Other bots</span><span class=\"ds-k\"><i class=\"ds-bul ds-wallets\">W</i>Wallets</span></div>",
+      "css": ".ds-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font:12.5px 'Helvetica Neue','Heros','Segoe UI',system-ui,sans-serif;color:var(--ink2,#52514e)}.ds-k{display:inline-flex;align-items:center;gap:6px}.ds-bul{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--c);color:var(--on);font:700 10.5px/1 'Helvetica Neue','Heros','Segoe UI',system-ui,sans-serif;font-style:normal}.ds-hay{--c:var(--l-hay,#2a78d6);--on:var(--on-hay,#ffffff)}.ds-nkbd{--c:var(--l-nkbd,#eb6834);--on:var(--on-nkbd,#0b0b0b)}.ds-q6ww{--c:var(--l-q6ww,#1baf7a);--on:var(--on-q6ww,#0b0b0b)}.ds-rcfx{--c:var(--l-rcfx,#eda100);--on:var(--on-rcfx,#0b0b0b)}.ds-deflex{--c:var(--l-deflex,#e87ba4);--on:var(--on-deflex,#0b0b0b)}.ds-vestige{--c:var(--l-vestige,#008300);--on:var(--on-vestige,#ffffff)}.ds-bots{--c:var(--l-bots,#8a8984);--on:var(--on-bots,#0b0b0b)}.ds-wallets{--c:var(--l-wallets,#6250d6);--on:var(--on-wallets,#ffffff)}"
+    },
+    {
+      "name": "Data Table",
+      "kind": "custom",
+      "refersTo": "table-cell",
+      "description": "Sortable tabular table; actor cells lead with a line bullet; tags on sunk.",
+      "html": "<table class=\"ds-table\"><thead><tr><th>Sender</th><th>Type</th><th class=\"n\" aria-sort=\"descending\"><button>Volume</button></th><th class=\"n\">Swaps</th></tr></thead><tbody><tr><td><span class=\"ds-who\"><i class=\"ds-b\" style=\"--c:var(--l-nkbd,#eb6834);--on:var(--on-nkbd,#0b0b0b)\">N</i><span><b>NKBD arb</b><small>App contract</small></span></span></td><td><span class=\"ds-tag\">Arbitrage</span></td><td class=\"n\">$14.2K</td><td class=\"n\">4,792</td></tr><tr><td><span class=\"ds-who\"><i class=\"ds-b\" style=\"--c:var(--l-hay,#2a78d6);--on:var(--on-hay,#ffffff)\">H</i><span><b>Hay router</b><small>App contract</small></span></span></td><td><span class=\"ds-tag\">Aggregator</span></td><td class=\"n\">$9,148</td><td class=\"n\">1,027</td></tr></tbody></table>",
+      "css": ".ds-table{width:100%;border-collapse:collapse;font:13px 'Helvetica Neue','Heros','Segoe UI',system-ui,sans-serif;color:var(--ink,#0b0b0b)}.ds-table th{padding:6px 8px;text-align:left;font-size:12px;font-weight:600;color:var(--muted,#6b6a65);border-bottom:1px solid var(--base,#c3c2b7)}.ds-table th button{font:inherit;color:var(--ink,#0b0b0b);background:none;border:0;padding:0;cursor:pointer}.ds-table th button::after{content:'';display:inline-block;margin-left:3px;border:4px solid transparent;border-top-color:currentColor;vertical-align:-2px}.ds-table th button:focus-visible{outline:2px solid var(--focus,#2a78d6);outline-offset:2px}.ds-table td{padding:7px 8px;border-bottom:1px solid var(--hair,#e1e0d9)}.ds-table tr:last-child td{border-bottom:0}.ds-table th:first-child,.ds-table td:first-child{padding-left:0}.ds-table .n{text-align:right;font-variant-numeric:tabular-nums}.ds-who{display:flex;align-items:center;gap:8px}.ds-who b{display:block;font-weight:600}.ds-who small{display:block;font-size:11.5px;color:var(--muted,#6b6a65)}.ds-b{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--c);color:var(--on);font:700 10.5px/1 'Helvetica Neue','Heros','Segoe UI',system-ui,sans-serif;font-style:normal}.ds-tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:11px;font-weight:600;color:var(--ink2,#52514e);background:var(--sunk,#eae9e4)}"
+    },
+    {
+      "name": "Trunk (line-share strip)",
+      "kind": "custom",
+      "refersTo": "line-bullet",
+      "description": "The day's order flow as one segmented transit line, bullets on segments 30px or wider.",
+      "html": "<svg class=\"ds-trunk\" width=\"360\" height=\"48\" viewBox=\"0 0 360 48\" role=\"img\" aria-label=\"Hay router 40%, NKBD arb 35%, Other bots 25%\"><path d=\"M5 11H143V21H5A5 5 0 0 1 5 11Z\" fill=\"var(--l-hay,#2a78d6)\"/><path d=\"M145 11H271V21H145Z\" fill=\"var(--l-nkbd,#eb6834)\"/><path d=\"M273 11H355A5 5 0 0 1 355 21H273Z\" fill=\"var(--l-bots,#8a8984)\"/><circle cx=\"13\" cy=\"16\" r=\"9\" fill=\"var(--l-hay,#2a78d6)\" stroke=\"var(--panel,#fcfcfb)\" stroke-width=\"2\"/><text x=\"13\" y=\"19.7\" text-anchor=\"middle\" fill=\"var(--on-hay,#ffffff)\">H</text><circle cx=\"158\" cy=\"16\" r=\"9\" fill=\"var(--l-nkbd,#eb6834)\" stroke=\"var(--panel,#fcfcfb)\" stroke-width=\"2\"/><text x=\"158\" y=\"19.7\" text-anchor=\"middle\" fill=\"var(--on-nkbd,#0b0b0b)\">N</text><circle cx=\"286\" cy=\"16\" r=\"9\" fill=\"var(--l-bots,#8a8984)\" stroke=\"var(--panel,#fcfcfb)\" stroke-width=\"2\"/><text x=\"286\" y=\"19.7\" text-anchor=\"middle\" fill=\"var(--on-bots,#0b0b0b)\">B</text><g class=\"ds-lbl\"><text x=\"2\" y=\"44\">40%</text><text x=\"147\" y=\"44\">35%</text><text x=\"275\" y=\"44\">25%</text></g></svg>",
+      "css": ".ds-trunk{display:block;overflow:visible;font-family:'Helvetica Neue','Heros','Segoe UI',system-ui,sans-serif}.ds-trunk text{font-weight:700;font-size:10.5px}.ds-trunk .ds-lbl text{font-weight:400;font-size:11px;fill:var(--muted,#6b6a65);font-variant-numeric:tabular-nums}.ds-trunk path{transition:opacity .15s}.ds-trunk:hover path:not(:hover){opacity:.25}"
+    },
+    {
+      "name": "Line-Diagram Map",
+      "kind": "custom",
+      "refersTo": "line-bullet",
+      "description": "Vertical transit diagram: each source a coloured line, each pool a station row, stop area proportional to volume, interchange bars joining lines that share a stop.",
+      "html": "<svg class=\"ds-fm\" width=\"420\" height=\"170\" viewBox=\"0 0 420 170\" role=\"img\" aria-label=\"Order flow map\"><line class=\"ds-grid\" x1=\"0\" x2=\"420\" y1=\"94.5\" y2=\"94.5\"/><line class=\"ds-grid\" x1=\"0\" x2=\"420\" y1=\"134.5\" y2=\"134.5\"/><text class=\"ds-nm\" x=\"0\" y=\"72\">goBTC/ALGO</text><text class=\"ds-vv\" x=\"0\" y=\"86\">0.30% Classic · $6,876</text><text class=\"ds-nm\" x=\"0\" y=\"112\">ALGO/USDC</text><text class=\"ds-vv\" x=\"0\" y=\"126\">0.30% clMM · $6,541</text><text class=\"ds-nm\" x=\"0\" y=\"152\">Other pools</text><text class=\"ds-vv\" x=\"0\" y=\"166\">$11.1K</text><line class=\"ds-xc\" x1=\"250\" x2=\"390\" y1=\"74\" y2=\"74\"/><line class=\"ds-xc\" x1=\"250\" x2=\"320\" y1=\"114\" y2=\"114\"/><line class=\"ds-xc\" x1=\"250\" x2=\"390\" y1=\"154\" y2=\"154\"/><line x1=\"250\" x2=\"250\" y1=\"44\" y2=\"154\" stroke=\"var(--l-hay,#2a78d6)\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"320\" x2=\"320\" y1=\"44\" y2=\"154\" stroke=\"var(--l-nkbd,#eb6834)\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"390\" x2=\"390\" y1=\"44\" y2=\"154\" stroke=\"var(--l-q6ww,#1baf7a)\" stroke-width=\"6\" stroke-linecap=\"round\"/><circle cx=\"250\" cy=\"11\" r=\"10\" fill=\"var(--l-hay,#2a78d6)\"/><text class=\"ds-bt\" x=\"250\" y=\"14.8\" fill=\"var(--on-hay,#ffffff)\">H</text><circle cx=\"320\" cy=\"11\" r=\"10\" fill=\"var(--l-nkbd,#eb6834)\"/><text class=\"ds-bt\" x=\"320\" y=\"14.8\" fill=\"var(--on-nkbd,#0b0b0b)\">N</text><circle cx=\"390\" cy=\"11\" r=\"10\" fill=\"var(--l-q6ww,#1baf7a)\"/><text class=\"ds-bt\" x=\"390\" y=\"14.8\" fill=\"var(--on-q6ww,#0b0b0b)\">Q</text><text class=\"ds-vv ds-c\" x=\"250\" y=\"36\">$15.1K</text><text class=\"ds-vv ds-c\" x=\"320\" y=\"36\">$14.2K</text><text class=\"ds-vv ds-c\" x=\"390\" y=\"36\">$5,614</text><circle class=\"ds-stop\" cx=\"250\" cy=\"74\" r=\"12\" fill=\"var(--l-hay,#2a78d6)\"/><circle class=\"ds-stop\" cx=\"320\" cy=\"74\" r=\"6\" fill=\"var(--l-nkbd,#eb6834)\"/><circle class=\"ds-stop\" cx=\"390\" cy=\"74\" r=\"6\" fill=\"var(--l-q6ww,#1baf7a)\"/><circle class=\"ds-stop\" cx=\"250\" cy=\"114\" r=\"8\" fill=\"var(--l-hay,#2a78d6)\"/><circle class=\"ds-stop\" cx=\"320\" cy=\"114\" r=\"4\" fill=\"var(--l-nkbd,#eb6834)\"/><circle class=\"ds-stop\" cx=\"250\" cy=\"154\" r=\"11\" fill=\"var(--l-hay,#2a78d6)\"/><circle class=\"ds-stop\" cx=\"320\" cy=\"154\" r=\"11\" fill=\"var(--l-nkbd,#eb6834)\"/><circle class=\"ds-stop\" cx=\"390\" cy=\"154\" r=\"3\" fill=\"var(--l-q6ww,#1baf7a)\"/></svg>",
+      "css": ".ds-fm{display:block;overflow:visible;font-family:'Helvetica Neue','Heros','Segoe UI',system-ui,sans-serif}.ds-grid{stroke:var(--hair,#e1e0d9);stroke-width:1}.ds-xc{stroke:var(--ink2,#52514e);stroke-width:2;stroke-opacity:.45}.ds-nm{fill:var(--ink,#0b0b0b);font-size:12.5px;font-weight:600}.ds-vv{fill:var(--muted,#6b6a65);font-size:11px;font-variant-numeric:tabular-nums}.ds-c,.ds-bt{text-anchor:middle}.ds-bt{font-weight:700;font-size:10.5px}.ds-stop{stroke:var(--panel,#fcfcfb);stroke-width:2;transition:opacity .15s}.ds-fm:hover .ds-stop:not(:hover){opacity:.18}"
+    },
+    {
+      "name": "Tooltip",
+      "kind": "custom",
+      "refersTo": "tooltip",
+      "description": "Inverted floating readout for charts and the map.",
+      "html": "<div class=\"ds-tip\"><div class=\"ds-tt\">goBTC/ALGO</div><div class=\"ds-tr\"><i style=\"--c:var(--l-hay,#2a78d6)\"></i><span>Hay router</span><b>$2,410</b></div><div class=\"ds-tr\"><i style=\"--c:var(--l-nkbd,#eb6834)\"></i><span>NKBD arb</span><b>$1,120</b></div></div>",
+      "css": ".ds-tip{max-width:280px;padding:8px 10px;border-radius:6px;background:var(--tip-bg,#0b0b0b);color:var(--tip-ink,#f6f6f3);font:12.5px/1.4 'Helvetica Neue','Heros','Segoe UI',system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,0.28)}.ds-tt{font-weight:700;margin-bottom:4px}.ds-tr{display:flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums}.ds-tr i{width:12px;height:2px;border-radius:1px;background:var(--c);flex:none}.ds-tr span{color:var(--tip-2,#b4b3ac)}.ds-tr b{margin-left:auto;padding-left:12px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Transit Map",
+    "overview": "Pact's order flow is drawn as a transit network. Every source of swaps (an aggregator, a named arbitrage bot, the other bots, direct wallets) is a coloured line with a lettered bullet, and every pool is a station that lines stop at. The page is a black signage band over map paper: an off-white ground, near-white sheets with hairline edges, and colour reserved almost entirely for the lines. In dark mode the paper becomes graphite and the band goes pure black.\n\nIt is a dense, numbers-first operating tool for one fluent reader, checked many times a day on a phone and on a desktop. Type is a single neo-grotesque (Helvetica Neue, or its self-hosted TeX Gyre Heros stand-in) at modest sizes with tabular figures, so the one large figure per view (this month's fees) carries the hierarchy alone. Nothing moves unless the data changed: the only animations are a fading highlight on a fresh swap row, tooltip fades and dimming the lines you are not hovering.\n\nThe line palette is the system's spine. It has a fixed order, it reads the same way in every chart, legend, table row and map, and each colour carries its own ink token so the bullet letter clears contrast in both modes.",
+    "keyCharacteristics": [
+      "Black signage band with the title, live status, ALGO price and tabs; underline tabs in band ink.",
+      "Map-paper page, near-white panels, 1px hairlines, 6px corners, no card shadows.",
+      "Eight order-flow lines in a fixed colour order, each with a lettered bullet and its own ink token.",
+      "One neo-grotesque family; tabular figures for every number in tables, axes and stats.",
+      "Charts are flat fills with rounded data-ends; neutrals (ink, cmp) carry Pact's own totals so the line colours stay for actors."
+    ],
+    "rules": [
+      {
+        "name": "The Fixed Order Rule",
+        "body": "The eight lines always appear in the order Hay, NKBD, Q6WW, RCFX, Deflex, Vestige, Other bots, Wallets, and each actor keeps its colour everywhere. Adjacent pairs were checked for colour-vision deficiency in both modes; do not reorder or substitute.",
+        "section": "colors"
+      },
+      {
+        "name": "The Lines Are Actors Rule",
+        "body": "Line colours mean \"who sent the swap\" and nothing else. Pact's own totals (fees, TVL, volume, price) are drawn in `ink`, with `cmp` for comparison.",
+        "section": "colors"
+      },
+      {
+        "name": "The Own Ink Rule",
+        "body": "Anything drawn on a line fill uses that line's `on-*` token for the current mode, never a fixed white.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Numbers Rule",
+        "body": "Every number in a table, axis, legend value, price or stat uses tabular figures and right-aligns in tables.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Hero Rule",
+        "body": "Only the month's fees use display size; everything else stays at 30px or below.",
+        "section": "typography"
+      },
+      {
+        "name": "The Paper Sheet Rule",
+        "body": "Panels never cast shadows; depth is tone (`page` / `panel` / `sunk`) plus hairlines.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do draw every actor with its line colour and bullet letter, in the fixed order Hay, NKBD, Q6WW, RCFX, Deflex, Vestige, Other bots, Wallets.",
+      "Do colour bullet letters and any text on a line fill with that line's `on-*` token for the current mode.",
+      "Do define every new colour in both the light set and the dark set (`:root`, the dark media query and `[data-theme='dark']`).",
+      "Do use tabular figures for all numbers and right-align numeric table columns.",
+      "Do keep panels flat: `panel` on `page`, 1px `hair` border, 6px corners, 16px padding.",
+      "Do round bars and columns only at the data end (4px), square at the baseline.",
+      "Do give every chart a table or text fallback (\"Show as table\") and an accessible label."
+    ],
+    "donts": [
+      "Don't use a line colour for anything that is not that actor; Pact's own totals are `ink` and comparisons are `cmp`.",
+      "Don't put fixed white text on a fill that changes between modes.",
+      "Don't add card shadows; the only shadows are the pressed segment and the tooltip.",
+      "Don't add sounds, particles, odometers, banners, toasts or idle animation; motion is for data that changed.",
+      "Don't add a second display-size figure to a view.",
+      "Don't introduce a second typeface."
+    ]
+  }
+}

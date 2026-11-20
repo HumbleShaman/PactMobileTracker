@@ -1,3 +1,5 @@
 data/
 preview/
 node_modules/
+.impeccable/review/
+.impeccable/mocks/
