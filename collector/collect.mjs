@@ -28,6 +28,7 @@ import { poolFeeSplit, swapFees, HOUR_S } from './fees.mjs';
 import { collectRewards, rewardsFeed } from './rewards.mjs';
 import { TZ_S, nextMonthStart, periodStart } from './period.mjs';
 import { initMarket, marketSwap, collectMarket, buildMarket, dayStart } from './market.mjs';
+import { collectLiquidity, buildLiquidity } from './liquidity.mjs';
 
 const API = 'https://pact.fi/api/v1';
 const ALGOD = 'https://mainnet-api.algonode.cloud';
@@ -151,6 +152,8 @@ async function collect() {
 	// First run with market rollups: this run's re-scan window counts every swap
 	// (seen or not) for the market, and the backfill covers what came before.
 	const firstMarket = initMarket(state);
+	// Liquidity values need the snapshot's price table; take a fresh snapshot if it predates it.
+	if (state.mk && !state.mk.px) state.mk.snap = null;
 	const genesisMs = GENESIS_S * 1000;
 	const stopMs = Math.max(genesisMs, state.cursorTs - OVERLAP_MS);
 
@@ -219,14 +222,24 @@ async function collect() {
 		marketLog = `skipped this run (${e.message})`;
 	}
 
+	// Liquidity adds/removes (clMM all; weighted/classic $1K+). Never blocks fees either.
+	let lqLog = '';
+	try {
+		lqLog = await collectLiquidity(state, { getJSON, nowS });
+	} catch (e) {
+		lqLog = `skipped this run (${e.message})`;
+	}
+
 	await mkdir(dir, { recursive: true });
 	await writeFile(statePath, JSON.stringify(state));
 	const feed = buildFeed(state, nowS);
 	await writeFile(feedPath, JSON.stringify(feed));
 	try {
-		const market = JSON.stringify(buildMarket(state, nowS));
+		const m = buildMarket(state, nowS);
+		m.liquidity = buildLiquidity(state, nowS);
+		const market = JSON.stringify(m);
 		await writeFile(path.join(dir, 'market.json'), market);
-		console.log(`Market: ${marketLog || 'up to date'}. market.json ${(market.length / 1024).toFixed(1)} KB, state ${(JSON.stringify(state).length / 1024).toFixed(0)} KB.`);
+		console.log(`Market: ${marketLog || 'up to date'}. Liquidity: ${lqLog}. market.json ${(market.length / 1024).toFixed(1)} KB, state ${(JSON.stringify(state).length / 1024).toFixed(0)} KB.`);
 	} catch (e) {
 		console.warn(`market.json: not written (${e.message})`);
 	}

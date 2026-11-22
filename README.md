@@ -13,6 +13,7 @@ The live view has five tabs. There are no sounds or animations; numbers update a
 | **Overview** | This month's fees (protocol vs LP split, today, last 24h, volume, pace vs last month at the same day), who traded in the last 24h, monthly history, block rewards, and live swaps tagged with who sent them. |
 | **Flow** | Who sends Pact's volume. The **order flow map** is a transit line diagram: each source is a vertical coloured line, each pool a stop, and a line's dot at a stop is sized by the volume it sent there. Then volume by line per hour/day, a roster of every sender (volume, swaps, average size, fees paid, pools touched), trade sizes, and an hour-of-week heatmap. |
 | **Pools** | Every pool: TVL, volume, turnover, fee and farm APR, the fees and protocol earnings it actually made in the window, and its 24h price. Filter by type (clMM, weighted, classic, stable) or search. |
+| **Liquidity** | Who added or removed liquidity, in which pool, and how much: every clMM add and remove, plus weighted and classic moves of $1K+. Daily in/out bars, net flow per pool (against its TVL), and the event feed with wallets, token amounts and links to each transaction. Overview shows the last 24h. |
 | **Tokens** | Pact TVL and daily volume (30 days), live ALGO/USD, net buying vs selling per token, and the biggest trades of the week. |
 | **vs Tinyman** | Pact's share of Pact + Tinyman volume and TVL, and every pair Tinyman trades with Pact's volume, depth and share beside it. Each pair is flagged **No Pact pool**, **Thin** (Pact depth under a quarter of Tinyman's), **Under-routed** (Pact has the depth but aggregators don't send it flow), **Behind** or **Competitive**. |
 
@@ -63,6 +64,14 @@ The fee in USD is the swap's USD value (from the API) × bps / 10000. Checked ag
 **Months** (`collector/period.mjs`): the collector keeps counting from the tracking start and splits by month when it writes the feed. `feed.genesis` is the start of the current month, so `total`, `protocol` and the chart count from the 1st. `months` lists every month newest first, `allTime` covers everything, and `monthEnd` tells the live view when to roll over.
 
 **Market rollups** (`collector/market.mjs` → `market.json`): every swap the collector reads is also tallied by pool, sender, sender→pool, token (bought vs sold), size bucket and local hour, in one bucket per local day (35 days kept) and one per hour (last 26 hours, so "24h" is exact). Closed buckets fold sub-$5 pools and edges into one "other" entry to keep `state.json` under ~1 MB. A backfill walks the swaps feed back 30 days, 150 pages per run, so a fresh start fills its history over about two hours; the dashboard says how far back it reaches until then. Once an hour the collector also snapshots Pact's pools (TVL, 24h volume, APR, price spark) and Tinyman's 100 busiest v2 pools plus its v1.1 leftovers (`/api/v1/pools/?version__in=2.0`; without `version__in` Tinyman only lists v1.1), and keeps a daily reading of Pact's share for the share-over-time chart.
+
+**Liquidity flows** (`collector/liquidity.mjs`):
+- **Weighted and clMM pools** keep their funds in the shared Vault app (3656084807). So one indexer query for transactions touching the Vault, paged forward from a saved round, catches every add and remove in both.
+  - The pool's ARC-28 event carries the provider and both token amounts: `PositionMinted` / `PositionBurned` for clMM, `LiquidityAdded` / `LiquidityRemoved` for weighted.
+- **Classic pools** predate the Vault and log no events. Every 30 minutes the collector reads their LP-token transfers instead: the pool sending LP to a wallet is an add, a wallet sending LP back is a remove.
+- **Kept:** clMM events of any size; weighted and classic only from $1K.
+- **Values:** prices come from Pact's own pool reserves (hourly snapshot).
+- **History:** the first run backfills 14 days, and events are kept for 35.
 
 The result is force-pushed as one commit on the `data` branch, so the git history doesn't grow.
 

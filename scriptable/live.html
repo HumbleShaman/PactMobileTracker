@@ -404,6 +404,7 @@
 			<button class="tab" role="tab" id="t-overview" aria-controls="v-overview" data-tab="overview">Overview</button>
 			<button class="tab" role="tab" id="t-flow" aria-controls="v-flow" data-tab="flow">Flow</button>
 			<button class="tab" role="tab" id="t-pools" aria-controls="v-pools" data-tab="pools">Pools</button>
+			<button class="tab" role="tab" id="t-liq" aria-controls="v-liq" data-tab="liq">Liquidity</button>
 			<button class="tab" role="tab" id="t-tokens" aria-controls="v-tokens" data-tab="tokens">Tokens</button>
 			<button class="tab" role="tab" id="t-gap" aria-controls="v-gap" data-tab="gap">vs Tinyman</button>
 		</nav>
@@ -430,6 +431,10 @@
 				<div class="panel">
 					<div class="ph"><h2>Who traded · last 24h</h2><span class="sub"><span id="ovLinesAt"></span> · <a class="more" href="#flow" data-go="flow">Open the flow map</a></span></div>
 					<div id="ovLines"></div>
+				</div>
+				<div class="panel">
+					<div class="ph"><h2>Liquidity · last 24h</h2><a class="more" href="#liq" data-go="liq">Liquidity tab</a></div>
+					<div id="ovLiq"></div>
 				</div>
 				<div class="panel">
 					<div class="ph"><h2 id="paceTitle">Pace vs last month</h2><div class="legend" id="paceLegend"></div></div>
@@ -507,6 +512,30 @@
 			<div class="ph"><h2>Pools</h2><span class="sub" id="poolsSub"></span></div>
 			<div class="tw"><table id="poolsTable"></table></div>
 			<button class="showall" id="poolsMore" type="button" hidden></button>
+		</div>
+	</section>
+
+	<!-- ─── Liquidity ─── -->
+	<section class="view" id="v-liq" role="tabpanel" aria-labelledby="t-liq" hidden>
+		<div class="toolbar">
+			<div class="seg" data-win="liq" role="group" aria-label="Time window"><button data-w="24h">24h</button><button data-w="7d">7 days</button><button data-w="30d">30 days</button></div>
+			<div class="seg" id="liqType" role="group" aria-label="Pool type"><button data-t="all">All</button><button data-t="cl">clMM</button><button data-t="w">Weighted</button><button data-t="cp">Classic</button></div>
+			<span class="note" id="liqCov"></span>
+		</div>
+		<div class="panel"><div class="sumrow" id="liqSum"></div></div>
+		<div class="panel">
+			<div class="ph"><h2>Liquidity in and out, per day</h2><div class="legend"><span class="k" style="--c:var(--buy)"><i class="sw"></i>Added</span><span class="k" style="--c:var(--sell)"><i class="sw"></i>Removed</span></div></div>
+			<div class="chart" id="liqChart"></div>
+		</div>
+		<div class="panel">
+			<div class="ph"><h2>By pool</h2><span class="sub" id="liqPoolsSub"></span></div>
+			<div class="tw"><table id="liqPools"></table></div>
+			<button class="showall" id="liqPoolsMore" type="button" hidden></button>
+		</div>
+		<div class="panel">
+			<div class="ph"><h2>Adds and removes</h2><span class="sub" id="liqEvSub"></span></div>
+			<div class="tw"><table id="liqEvents"></table></div>
+			<button class="showall" id="liqMore" type="button" hidden></button>
 		</div>
 	</section>
 
@@ -621,14 +650,17 @@ const S = {
 	ready: false,
 	lastOk: 0,
 	tab: 'overview',
-	win: { flow: '24h', pools: '24h', tokens: '24h' },
+	win: { flow: '24h', pools: '24h', tokens: '24h', liq: '7d' },
+	liqType: 'all',
+	liqAll: false,
+	liqPoolsAll: false,
 	poolType: 'all',
 	poolQuery: '',
 	poolsAll: false,
 	rosterAll: false,
 	gapAll: false,
 	gapFilter: 'all',
-	sort: { roster: ['vol', -1], pools: ['vol', -1], gap: ['tmVol', -1], big: ['usd', -1] }
+	sort: { roster: ['vol', -1], pools: ['vol', -1], gap: ['tmVol', -1], big: ['usd', -1], liqPools: ['gross', -1], liqEvents: ['t', -1] }
 };
 
 // Opened in a normal browser (not Scriptable): the "since you last checked" baseline lives in localStorage.
@@ -1911,11 +1943,132 @@ function shareHist(hist) {
 	});
 }
 
+// ─── LIQUIDITY ───
+const LQ_TYPE = { cl: 'clMM', w: 'Weighted', cp: 'Classic' };
+const liqFrom = (w) => { const now = Date.now() / 1000; return w === '24h' ? now - 86400 : dayStartS(now) - (w === '7d' ? 6 : 29) * 86400; };
+const liqOn = (t) => S.liqType === 'all' || S.liqType === t;
+/** "21,628.9 xALGO + 23,052.2 TALGO", skipping a zero side. */
+function liqAmounts(e, meta) {
+	if (e[4] == null && e[5] == null) return 'LP tokens';
+	const f = (v) => num(v, v >= 1000 ? 0 : v >= 1 ? 2 : 4);
+	const parts = [];
+	if (e[4]) parts.push(f(e[4]) + ' ' + meta[1]);
+	if (e[5]) parts.push(f(e[5]) + ' ' + meta[2]);
+	return parts.join(' + ') || '0';
+}
+function liqTotals(L, w) {
+	const t = { add: 0, rem: 0, na: 0, nr: 0, lps: 0 };
+	for (const r of L.windows[w] || []) if (liqOn(r[6])) { t.add += r[1]; t.rem += r[2]; t.na += r[3]; t.nr += r[4]; t.lps += r[5]; }
+	return t;
+}
+function renderLiq() {
+	const L = S.market && S.market.liquidity;
+	if (!L) return void ($('liqSum').innerHTML = '<div class="empty">' + (S.market ? 'Liquidity tracking starts with the next collector run.' : 'Loading market data…') + '</div>');
+	const w = S.win.liq, t = liqTotals(L, w), net = t.add - t.rem;
+	$('liqCov').textContent = 'clMM: every add and remove · weighted and classic: $' + num(L.big) + '+ only · since ' + dayLabel(L.from);
+	$('liqSum').innerHTML =
+		fact('Added', usd(t.add), num(t.na) + ' adds') +
+		fact('Removed', usd(t.rem), num(t.nr) + ' removes') +
+		'<div class="fact"><div class="l">Net</div><div class="v">' + (net >= 0 ? '+' : '−') + usd(Math.abs(net)) + '</div><div class="d ' + (net >= 0 ? 'up' : 'down') + '">' + (net >= 0 ? 'Net inflow' : 'Net outflow') + '</div></div>' +
+		fact('Wallets', num(t.lps), 'added or removed');
+	renderLiqChart(L);
+	// By pool
+	const rows = (L.windows[w] || []).filter((r) => liqOn(r[6])).map((r) => {
+		const m = L.pools[r[0]] || ['Pool ' + r[0], '?', '?', r[6], null, null];
+		return { id: r[0], name: m[0], type: r[6], fee: m[4], tvl: m[5], add: r[1], rem: r[2], net: r[1] - r[2], gross: r[1] + r[2], n: r[3] + r[4], na: r[3], nr: r[4], lps: r[5], pct: m[5] ? (r[1] - r[2]) / m[5] : null };
+	});
+	const maxNet = Math.max.apply(null, rows.map((r) => Math.abs(r.net)).concat([1]));
+	$('liqPoolsSub').textContent = num(rows.length) + ' pools with adds or removes';
+	table($('liqPools'), 'liqPools', [
+		{ k: 'name', label: 'Pool', fmt: (r) => '<span class="who"><span class="t"><b><a href="https://pact.fi/pool/' + r.id + '" target="_blank" rel="noopener">' + esc(r.name) + '</a></b><small>' + esc(LQ_TYPE[r.type] || '') + (r.fee != null ? ' · ' + feeTier(r.fee) : '') + '</small></span></span>' },
+		{ k: 'add', label: 'Added', n: 1, fmt: (r) => (r.add ? usd(r.add) : '–') },
+		{ k: 'rem', label: 'Removed', n: 1, fmt: (r) => (r.rem ? usd(r.rem) : '–') },
+		{ k: 'net', label: 'Net', n: 1, fmt: (r) => '<span style="white-space:nowrap">' + (r.net >= 0 ? '+' : '−') + usd(Math.abs(r.net)) + '</span>' + netBar(r.net, maxNet) },
+		{ k: 'n', label: 'Events', n: 1, opt: 1, fmt: (r) => num(r.na) + ' / ' + num(r.nr) },
+		{ k: 'lps', label: 'Wallets', n: 1, opt: 1, fmt: (r) => num(r.lps) },
+		{ k: 'tvl', label: 'TVL now', n: 1, opt: 1, fmt: (r) => (r.tvl == null ? '–' : usd(r.tvl)) },
+		{ k: 'pct', label: 'Net / TVL', n: 1, opt: 1, fmt: (r) => (r.pct == null ? '–' : (r.pct >= 0 ? '+' : '−') + pct(Math.abs(r.pct))) }
+	], rows, S.liqPoolsAll ? 0 : 25);
+	moreBtn($('liqPoolsMore'), rows.length, 25, S.liqPoolsAll, 'pools', () => { S.liqPoolsAll = !S.liqPoolsAll; renderLiq(); });
+	// Events
+	const from = liqFrom(w);
+	const ev = L.events.filter((e) => e[0] >= from && liqOn(e[7])).map((e) => {
+		const m = L.pools[e[2]] || ['Pool ' + e[2], '?', '?'];
+		const a = actorOf(e[3]);
+		return { t: e[0], add: e[1] > 0, pool: e[2], name: m[0], type: e[7], who: e[3], whoName: a.line === 'wallets' || a.line === 'bots' ? short(e[3]) : a.name, amt: liqAmounts(e, m), usd: e[6] ?? 0, tx: e[8] };
+	});
+	$('liqEvSub').textContent = num(ev.length) + ' in this window' + (L.events.length >= 250 && L.events[L.events.length - 1][0] > from ? ' (latest 250 kept on the page)' : '');
+	const n = table($('liqEvents'), 'liqEvents', [
+		{ k: 't', label: 'When', fmt: (r) => '<span class="tab-nums" style="white-space:nowrap">' + dayLabel(r.t) + ' · ' + hhmm(r.t) + '</span><small class="phone-only">' + esc(r.name) + '</small>' },
+		{ k: 'add', label: '', sortable: false, fmt: (r) => '<span class="tag' + (r.add ? '' : ' flag-route') + '">' + (r.add ? 'Add' : 'Remove') + '</span>' },
+		{ k: 'name', label: 'Pool', opt: 1, fmt: (r) => '<b>' + esc(r.name) + '</b> <span class="muted">' + esc(LQ_TYPE[r.type] || '') + '</span>' },
+		{ k: 'whoName', label: 'Wallet', opt: 1, fmt: (r) => '<a href="https://allo.info/account/' + r.who + '" target="_blank" rel="noopener" title="' + r.who + '">' + esc(r.whoName) + '</a>' },
+		{ k: 'amt', label: 'Amounts', sortable: false, opt: 1, fmt: (r) => '<a href="https://allo.info/tx/' + r.tx + '" target="_blank" rel="noopener" style="white-space:nowrap">' + esc(r.amt) + '</a>' },
+		{ k: 'usd', label: 'Value', n: 1, fmt: (r) => (r.add ? '+' : '−') + usd(r.usd) }
+	], ev, S.liqAll ? 0 : 40);
+	moreBtn($('liqMore'), n, 40, S.liqAll, 'events', () => { S.liqAll = !S.liqAll; renderLiq(); });
+}
+/** Column hanging down from a baseline at y: square at the baseline, 4px rounded at the data end. */
+function colDown(x, y, w, h, r) {
+	if (h <= 0) return '';
+	r = Math.min(r == null ? 4 : r, w / 2, h);
+	return 'M' + x + ' ' + y + 'V' + (y + h - r) + 'Q' + x + ' ' + (y + h) + ' ' + (x + r) + ' ' + (y + h) + 'H' + (x + w - r) + 'Q' + (x + w) + ' ' + (y + h) + ' ' + (x + w) + ' ' + (y + h - r) + 'V' + y + 'Z';
+}
+/** A small diverging bar: inflow grows right of centre in blue, outflow left in red. */
+function netBar(v, max) {
+	const w = Math.min(50, (Math.abs(v) / max) * 50);
+	return '<div class="inbar" style="min-width:64px;background:var(--sunk)"><i style="left:' + (v >= 0 ? 50 : 50 - w) + '%;width:' + w.toFixed(1) + '%;background:' + (v >= 0 ? 'var(--buy)' : 'var(--sell)') + '"></i></div>';
+}
+function renderLiqChart(L) {
+	const box = $('liqChart'), W = box.clientWidth || 360, H = 220, m = { l: 52, r: 4, t: 8, b: 22 };
+	const days = (S.win.liq === '30d' ? L.daily : L.daily.slice(-7)).map((d) => {
+		let add = 0, rem = 0;
+		for (const [t, i] of [['cl', 1], ['w', 3], ['cp', 5]]) if (liqOn(t)) { add += d[i]; rem += d[i + 1]; }
+		return [d[0], add, rem];
+	});
+	const top = niceMax(Math.max.apply(null, days.map((d) => Math.max(d[1], d[2])).concat([1])) * 1.05);
+	const mid = m.t + (H - m.t - m.b) / 2, half = (H - m.t - m.b) / 2;
+	const slot = (W - m.l - m.r) / days.length, bw = Math.max(3, Math.min(24, slot - 2));
+	let g = '';
+	for (const f of [-1, -0.5, 0, 0.5, 1]) {
+		const y = Math.round(mid - f * half) + 0.5;
+		g += '<line class="' + (f ? 'grid' : 'baseline') + '" x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + y + '" y2="' + y + '"/><text class="ax" x="' + (m.l - 6) + '" y="' + (y + 3.5) + '" text-anchor="end">' + (f < 0 ? '−' : '') + axisUsd(Math.abs(f) * top) + '</text>';
+	}
+	days.forEach((d, i) => {
+		const x = m.l + i * slot + (slot - bw) / 2, ha = (d[1] / top) * half, hr = (d[2] / top) * half;
+		if (ha > 0.3) g += '<path d="' + colPath(f1(x), f1(mid - ha - 1), f1(bw), f1(ha)) + '" fill="var(--buy)"/>';
+		if (hr > 0.3) g += '<path d="' + colDown(f1(x), f1(mid + 1), f1(bw), f1(hr)) + '" fill="var(--sell)"/>';
+		const every = days.length > 14 ? 5 : 1;
+		if (i % every === 0 || i === days.length - 1) if (i === days.length - 1 || days.length - 1 - i >= every * 0.6) g += '<text class="ax" x="' + f1(x + bw / 2) + '" y="' + (H - 6) + '" text-anchor="middle">' + dayLabel(d[0]) + '</text>';
+	});
+	box.innerHTML = svgOpen(W, H) + g + '</svg>';
+	hover(box, (x) => {
+		const i = Math.floor((x - m.l) / slot);
+		if (i < 0 || i >= days.length) return null;
+		const d = days[i];
+		return tipRows(dayLabel(d[0]), [{ c: 'var(--buy)', dot: true, k: 'Added', v: usd(d[1]) }, { c: 'var(--sell)', dot: true, k: 'Removed', v: usd(d[2]) }, { k: 'Net', v: (d[1] - d[2] >= 0 ? '+' : '−') + usd(Math.abs(d[1] - d[2])) }]);
+	});
+}
+/** Overview: the last 24h of liquidity moves in one line, with the biggest pools. */
+function renderOvLiq() {
+	const el = $('ovLiq');
+	const L = S.market && S.market.liquidity;
+	if (!L) return void (el.innerHTML = '<div class="empty">' + (S.market ? 'Liquidity tracking starts with the next collector run.' : 'Loading…') + '</div>');
+	const rows = L.windows['24h'] || [];
+	let add = 0, rem = 0, n = 0;
+	for (const r of rows) { add += r[1]; rem += r[2]; n += r[3] + r[4]; }
+	const net = add - rem;
+	el.innerHTML = '<div class="sumrow">' + fact('Added', usd(add), '') + fact('Removed', usd(rem), '') +
+		'<div class="fact"><div class="l">Net</div><div class="v">' + (net >= 0 ? '+' : '−') + usd(Math.abs(net)) + '</div></div>' + fact('Events', num(n), '') + '</div>' +
+		(rows.length ? '<div class="legend" style="margin-top:12px">' + rows.slice(0, 4).map((r) => { const nt = r[1] - r[2]; return '<span class="k"><b>' + esc((L.pools[r[0]] || ['Pool'])[0]) + '</b> ' + (nt >= 0 ? '+' : '−') + usd(Math.abs(nt)) + '</span>'; }).join('') + '</div>' : '<p class="note" style="margin:10px 0 0">No adds or removes in the last 24 hours.</p>');
+}
+
 // ─── tabs & controls ───
 function renderOverview() {
 	renderMonth();
 	renderPace();
 	renderOvLines();
+	renderOvLiq();
 	renderHist();
 	renderDep();
 	Rewards.render();
@@ -1925,6 +2078,7 @@ function renderTab() {
 	if (S.tab === 'overview') renderOverview();
 	else if (S.tab === 'flow') renderFlow();
 	else if (S.tab === 'pools') renderPools();
+	else if (S.tab === 'liq') renderLiq();
 	else if (S.tab === 'tokens') renderTokens();
 	else if (S.tab === 'gap') renderGap();
 	renderFoot();
@@ -1944,7 +2098,7 @@ function setTab(t, focus) {
 	renderTab();
 	tip.hide();
 }
-function saveUi() { store.set(UI_KEY, { tab: S.tab, win: S.win, poolType: S.poolType, theme: document.documentElement.dataset.theme || null }); }
+function saveUi() { store.set(UI_KEY, { tab: S.tab, win: S.win, poolType: S.poolType, liqType: S.liqType, theme: document.documentElement.dataset.theme || null }); }
 function bindControls() {
 	const tabs = Array.from(document.querySelectorAll('.tab'));
 	tabs.forEach((b, i) => {
@@ -1973,6 +2127,10 @@ function bindControls() {
 	ts.onclick = (e) => { const b = e.target.closest('[data-t]'); if (!b) return; S.poolType = b.dataset.t; syncT(); saveUi(); renderPools(); };
 	syncT();
 	$('poolSearch').oninput = (e) => { S.poolQuery = e.target.value; renderPools(); };
+	const lt = $('liqType');
+	const syncL = () => lt.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.t === S.liqType ? 'true' : 'false'));
+	lt.onclick = (e) => { const b = e.target.closest('[data-t]'); if (!b) return; S.liqType = b.dataset.t; syncL(); saveUi(); renderLiq(); };
+	syncL();
 	const gs = $('gapSeg');
 	const syncG = () => gs.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.g === S.gapFilter ? 'true' : 'false'));
 	gs.onclick = (e) => { const b = e.target.closest('[data-g]'); if (!b) return; S.gapFilter = b.dataset.g; syncG(); renderGap(); };
@@ -2058,6 +2216,7 @@ async function boot() {
 	if (ui.theme) document.documentElement.dataset.theme = ui.theme;
 	if (ui.win) Object.assign(S.win, ui.win);
 	if (ui.poolType) S.poolType = ui.poolType;
+	if (ui.liqType) S.liqType = ui.liqType;
 	let p = JSON.parse($('payload').textContent);
 	const q = new URLSearchParams(location.search);
 	if (typeof p === 'string') {

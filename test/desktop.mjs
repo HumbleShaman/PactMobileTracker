@@ -14,7 +14,7 @@ import { pathToFileURL } from 'node:url';
 
 const url = pathToFileURL(path.resolve('scriptable/live.html')).href;
 const dataDir = process.argv[2];
-const TABS = ['overview', 'flow', 'pools', 'tokens', 'gap'];
+const TABS = ['overview', 'flow', 'pools', 'liq', 'tokens', 'gap'];
 mkdirSync('preview', { recursive: true });
 
 const browser = await chromium.launch();

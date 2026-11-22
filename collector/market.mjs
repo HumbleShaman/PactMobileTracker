@@ -84,7 +84,7 @@ function add(B, s, f, aid, hod) {
 
 /** Pair label for a pool, quote token last (ALGO/USDC, not USDC/ALGO). */
 const QUOTE = ['USDC', 'USDt', 'ALGO', 'xALGO', 'TALGO', 'goBTC', 'goETH'];
-function pairName(x, y) {
+export function pairName(x, y) {
 	const qx = QUOTE.indexOf(x), qy = QUOTE.indexOf(y);
 	const xq = qx < 0 ? 99 : qx, yq = qy < 0 ? 99 : qy;
 	return xq < yq ? [y, x] : [x, y];
@@ -178,8 +178,26 @@ export async function snapshotMarkets(state, getJSON, api, chain, nowS) {
 			round(p.volume24hUsd ?? 0, 2),
 			round(p.tradingAprFraction ?? 0, 5),
 			round(p.farmAprFraction ?? 0, 5),
-			i < 80 && p.priceSpark?.length ? p.priceSpark.map(sig) : null
+			i < 80 && p.priceSpark?.length ? p.priceSpark.map(sig) : null,
+			p.lpToken?.assetId ?? null, // [12] LP asset (classic/weighted/stable)
+			Number(p.totalLpSupply) || null // [13] LP supply, base units
 		]);
+	// USD per token from Pact's own reserves: a token's value share of its deepest
+	// classic/weighted pool (clMM pools aren't value-balanced, so they're skipped).
+	const px = {};
+	for (const p of pools.values()) {
+		if (p.protocol === 'concentrated_liquidity' || !(p.tvlUsd >= 100)) continue;
+		const wA = p.weighted?.weightABps != null ? p.weighted.weightABps / 1e4 : 0.5;
+		for (const [tok, res, w] of [[p.tokenA, p.reserveA, wA], [p.tokenB, p.reserveB, 1 - wA]]) {
+			if (!tok) continue;
+			const h = Number(res) / 10 ** (tok.decimals ?? 6);
+			if (!(h > 0)) continue;
+			const id = tok.assetId, cand = [sig((p.tvlUsd * w) / h), tok.decimals ?? 6, tok.symbol ?? '?', p.tvlUsd];
+			if (!px[id] || px[id][3] < p.tvlUsd) px[id] = cand;
+		}
+	}
+	px['31566704'] = [1, 6, 'USDC', Infinity];
+	mk.px = Object.fromEntries(Object.entries(px).map(([id, v]) => [id, v.slice(0, 3)]));
 
 	const an = await getJSON(`${api}/analytics?chain=${chain}&window=24h`);
 	const pl = an.data?.platform ?? {};
