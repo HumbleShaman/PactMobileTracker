@@ -376,8 +376,42 @@
 	.dep .amt { text-align: right; font-variant-numeric: tabular-nums; }
 	.dep .amt b { display: block; font-weight: 600; }
 	.dep .amt small { display: block; font-size: 11.5px; color: var(--muted); }
-	.dep li.fresh { animation: fresh 2.4s ease-out; }
-	@keyframes fresh { from { background: var(--sunk); } to { background: transparent; } }
+	/* ─── live feedback: a swap pulls into the board in its line's colour, its fee lands in the counter ─── */
+	.dep li { position: relative; isolation: isolate; row-gap: 0; cursor: pointer; }
+	.dep li::before { content: ''; position: absolute; inset: 1px -8px; z-index: -1; border-radius: 6px; background: color-mix(in oklab, var(--lc, var(--ink)) 18%, transparent); opacity: 0; transition: opacity 0.15s; pointer-events: none; }
+	.dep li:hover::before, .dep li.open::before { opacity: 0.5; }
+	.dep li:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
+	.dep li.fresh::before { animation: arrive 2.8s cubic-bezier(0.16, 1, 0.3, 1); }
+	.dep li.fresh.big::before { animation-duration: 5s; }
+	@keyframes arrive { 0%, 14% { opacity: 1; } 100% { opacity: 0; } }
+	.dep li.fresh .bul { position: relative; }
+	.dep li.fresh .bul::after { content: ''; position: absolute; inset: 0; border-radius: 50%; animation: ping 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both; }
+	@keyframes ping { from { box-shadow: 0 0 0 0 var(--c); opacity: 0.75; } to { box-shadow: 0 0 0 10px var(--c); opacity: 0; } }
+	.dep li.big .amt b { font-weight: 800; }
+	.dep .dd { grid-column: 1 / -1; display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
+	.dep li.open .dd { grid-template-rows: 1fr; }
+	.dep .dd > div { overflow: hidden; min-height: 0; font-size: 12px; color: var(--ink2); }
+	.dep .dd p { margin: 0; padding-top: 6px; padding-left: 82px; }
+	.dep .dd p + p { padding-top: 2px; }
+	.dep .dd b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+	.newpill { padding: 2px 9px; border: 0; border-radius: 999px; font: 600 12px/18px var(--sans); color: var(--panel); background: var(--ink); cursor: pointer; }
+	.figwrap { position: relative; }
+	.chips { position: absolute; left: 100%; top: 2px; margin-left: 8px; }
+	.chip { position: absolute; left: 0; top: 0; white-space: nowrap; font-size: 15px; font-weight: 700; color: var(--up); font-variant-numeric: tabular-nums; pointer-events: none; }
+	.splitbar i { transition: flex-grow 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+	.fact .v.tick, #feeFig.tick { animation: tick 1.4s cubic-bezier(0.16, 1, 0.3, 1); }
+	@keyframes tick { from { color: var(--up); } }
+	.px b.f-up { animation: pxup 0.9s ease-out; }
+	.px b.f-down { animation: pxdown 0.9s ease-out; }
+	@keyframes pxup { from { color: #6fd36f; } }
+	@keyframes pxdown { from { color: #ff8a7a; } }
+	.status .dot.ping { animation: dotping 1.1s cubic-bezier(0.16, 1, 0.3, 1); }
+	@keyframes dotping { from { box-shadow: 0 0 0 0 rgba(63, 191, 63, 0.7); } to { box-shadow: 0 0 0 8px rgba(63, 191, 63, 0); } }
+	@media (prefers-reduced-motion: reduce) {
+		/* keep the colour washes (they say "this is new"), drop the moving rings */
+		.dep li.fresh .bul::after, .status .dot.ping { animation: none; }
+		.dep .dd, .splitbar i { transition: none; }
+	}
 
 	.rw-top { display: flex; align-items: baseline; gap: 6px 12px; flex-wrap: wrap; }
 	.rw-top .big { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
@@ -439,7 +473,7 @@
 				<div class="panel month">
 					<div class="ph" style="margin:0"><h2 id="monthTitle">Fees this month</h2><span class="sub" id="monthSub"></span></div>
 					<div class="hero">
-						<div class="fig" id="feeFig">–</div>
+						<div class="figwrap"><div class="fig" id="feeFig">–</div><span class="chips" id="feeChips" aria-hidden="true"></span></div>
 						<div class="gain" id="gain"></div>
 					</div>
 					<div class="split">
@@ -487,7 +521,7 @@
 					<details class="tv"><summary>By account</summary><div class="tw"><table id="rwTable"></table></div></details>
 				</div>
 				<div class="panel">
-					<div class="ph"><h2>Live swaps</h2><span class="sub" id="depSub"></span></div>
+					<div class="ph"><h2>Live swaps</h2><span class="sub" id="depSub"></span><button class="newpill" id="depNew" type="button" hidden></button></div>
 					<ol class="dep" id="dep"></ol>
 				</div>
 			</div>
@@ -980,7 +1014,7 @@ function renderMonth() {
 	const f = S.feed, s = sums();
 	$('monthTitle').textContent = (f.monthEnd ? monthName(f.genesis) : 'Total') + ' fees';
 	$('monthSub').textContent = f.monthEnd ? 'Since ' + dayLabel(f.genesis) + ' · resets ' + dayLabel(f.monthEnd) : 'Since ' + dayLabel(f.genesis);
-	$('feeFig').textContent = usd(S.total, 2);
+	setFee(S.total);
 	const lp = Math.max(0, S.total - S.proto), share = S.total ? S.proto / S.total : 0;
 	const bar = $('splitBar').children;
 	bar[0].style.flex = String(Math.max(0.001, S.proto));
@@ -1005,6 +1039,7 @@ function renderMonth() {
 		fact('Last 24h', usd(s.day, 2), count(s.daySwaps) + ' swaps') +
 		'<div class="fact"><div class="l">Volume this month</div><div class="v">' + usd(vol) + '</div>' + (vs || '<div class="d">' + count(S.swaps) + ' swaps</div>') + '</div>' +
 		fact('Fee per $1K traded', vol ? usd((S.total / vol) * 1000, 2) : '–', 'Blended across pools');
+	tickFacts($('monthFacts'));
 	renderGain();
 }
 function fact(l, v, d, cls) {
@@ -1266,18 +1301,141 @@ function renderHist() {
 }
 
 // live swaps list
+const BIG_SWAP = 1000;
+const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const EASE_OUT = 'cubic-bezier(0.16, 1, 0.3, 1)';
+const Dep = { open: null, hover: false, held: new Set() };
 function depRow(r, fresh) {
 	const a = actorOf(r.s, r.id);
 	const meta = poolMeta(r.pool);
-	return '<li' + (fresh ? ' class="fresh"' : '') + '><span class="tm">' + hhmm(r.ts / 1000) + '</span>' + bullet(a.line, a.name) +
+	const big = (r.usd || 0) >= BIG_SWAP, open = Dep.open === r.id;
+	const round = String(r.id).split(':')[0];
+	const lp = Math.max(0, r.fee - (r.proto || 0));
+	const dp = r.fee >= 0.1 ? 2 : 4; // one precision per row, so the three amounts line up
+	const fx = (v) => (!v ? '$0' : v < Math.pow(10, -dp) ? '<$' + Math.pow(10, -dp).toFixed(dp) : usd(v, dp));
+	return '<li data-id="' + esc(r.id) + '" class="' + (fresh ? 'fresh ' : '') + (big ? 'big ' : '') + (open ? 'open' : '') + '" style="--lc:' + lineColor(a.line) + '" tabindex="0">' +
+		'<span class="tm">' + hhmm(r.ts / 1000) + '</span>' + bullet(a.line, a.name) +
 		'<span class="pr"><b>' + esc(r.a) + ' → ' + esc(r.b) + '</b><small>' + esc(a.name) + (meta ? ' · ' + esc(poolTier(r.pool)) + ' pool' : '') + '</small></span>' +
-		'<span class="amt"><b>' + usd(r.usd || 0) + '</b><small>fee ' + usd(r.fee) + '</small></span></li>';
+		'<span class="amt"><b>' + usd(r.usd || 0) + '</b><small>fee ' + usd(r.fee) + '</small></span>' +
+		'<div class="dd"><div><p>Fee <b>' + fx(r.fee) + '</b> · protocol ' + fx(r.proto || 0) + ' · LPs ' + fx(lp) + (r.usd ? ' · ' + pct(r.fee / r.usd, 2) + ' of the trade' : '') + '</p>' +
+		'<p>' + (/^\d+$/.test(round) ? '<a href="https://allo.info/block/' + round + '" target="_blank" rel="noopener">Block ' + num(+round, 0) + '</a>' : '') +
+		(r.s ? ' · sent by <a href="https://allo.info/account/' + esc(r.s) + '" target="_blank" rel="noopener">' + esc(short(r.s)) + '</a>' : '') +
+		(r.pool ? ' · <a href="https://allo.info/application/' + esc(r.pool) + '" target="_blank" rel="noopener">pool ' + esc(r.pool) + '</a>' : '') + '</p></div></div></li>';
 }
+/**
+ * The live board. New swaps pull in at the top in their line's colour and the rows below slide
+ * down to make room. While the mouse is over the board, arrivals wait behind a "N new" pill so
+ * the row being read or clicked doesn't jump away.
+ */
 function renderDep(freshIds) {
-	const list = S.recent.slice(0, 15);
-	$('dep').innerHTML = list.map((r) => depRow(r, freshIds && freshIds.has(r.id))).join('');
+	const ol = $('dep');
+	if (freshIds && freshIds.size && Dep.hover) {
+		for (const id of freshIds) Dep.held.add(id);
+		const pill = $('depNew');
+		pill.textContent = Dep.held.size + ' new';
+		pill.hidden = false;
+		return;
+	}
+	const move = freshIds && freshIds.size && !reduced() && !document.hidden;
+	const before = new Map();
+	if (move) ol.querySelectorAll('li[data-id]').forEach((li) => before.set(li.dataset.id, li.getBoundingClientRect().top));
+	ol.innerHTML = S.recent.slice(0, 15).map((r) => depRow(r, freshIds && freshIds.has(r.id))).join('');
+	if (move) {
+		let n = 0;
+		ol.querySelectorAll('li[data-id]').forEach((li) => {
+			const was = before.get(li.dataset.id);
+			if (was != null) {
+				const dy = was - li.getBoundingClientRect().top;
+				if (Math.abs(dy) > 0.5) li.animate([{ transform: 'translateY(' + dy + 'px)' }, { transform: 'none' }], { duration: 460, easing: EASE_OUT });
+			} else if (freshIds.has(li.dataset.id)) {
+				li.animate([{ opacity: 0, transform: 'translateY(-8px)', clipPath: 'inset(0 0 100% 0)' }, { opacity: 1, transform: 'none', clipPath: 'inset(0 0 0 0)' }], { duration: 460, easing: EASE_OUT, delay: Math.min(n++, 5) * 55, fill: 'backwards' });
+			}
+		});
+	}
+	$('depNew').hidden = true;
 	const s = sums();
 	$('depSub').textContent = count(s.daySwaps) + ' swaps · ' + usd(s.dayVol) + ' in 24h';
+}
+function bindDep() {
+	const ol = $('dep');
+	const flush = () => {
+		Dep.hover = false;
+		if (!Dep.held.size) return;
+		const ids = Dep.held;
+		Dep.held = new Set();
+		renderDep(ids);
+	};
+	ol.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') Dep.hover = true; });
+	ol.addEventListener('pointerleave', flush);
+	$('depNew').onclick = flush;
+	const toggle = (li) => {
+		const id = li.dataset.id, open = Dep.open !== id;
+		ol.querySelectorAll('li.open').forEach((x) => x.classList.remove('open'));
+		Dep.open = open ? id : null;
+		if (open) li.classList.add('open');
+	};
+	ol.addEventListener('click', (e) => {
+		if (e.target.closest('a')) return;
+		const li = e.target.closest('li[data-id]');
+		if (li) toggle(li);
+	});
+	ol.addEventListener('keydown', (e) => {
+		if (e.key !== 'Enter' && e.key !== ' ') return;
+		const li = e.target.closest('li[data-id]');
+		if (li && e.target === li) { e.preventDefault(); toggle(li); }
+	});
+}
+
+// ─── the month's fee counter: counts up to each new total, and the amount just earned floats off it ───
+const FeeFig = { shown: null, target: null, raf: 0 };
+function setFee(total) {
+	const el = $('feeFig'), from = FeeFig.shown;
+	FeeFig.target = total;
+	cancelAnimationFrame(FeeFig.raf);
+	const gained = from != null ? total - from : 0;
+	if (from == null || gained < 0.005 || document.hidden || S.tab !== 'overview') {
+		FeeFig.shown = total;
+		el.textContent = usd(total, 2);
+		return;
+	}
+	feeChip('+' + usd(gained, 2));
+	el.classList.remove('tick');
+	void el.offsetWidth;
+	el.classList.add('tick');
+	if (reduced()) { FeeFig.shown = total; el.textContent = usd(total, 2); return; }
+	const t0 = performance.now(), dur = Math.min(1200, 500 + gained * 400);
+	const step = (t) => {
+		const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 4);
+		FeeFig.shown = from + gained * e;
+		el.textContent = usd(FeeFig.shown, 2);
+		if (k < 1) FeeFig.raf = requestAnimationFrame(step);
+		else FeeFig.shown = total;
+	};
+	FeeFig.raf = requestAnimationFrame(step);
+}
+function feeChip(text) {
+	const box = $('feeChips');
+	const c = document.createElement('span');
+	c.className = 'chip';
+	c.textContent = text;
+	box.appendChild(c);
+	const still = reduced();
+	const a = c.animate(still
+		? [{ opacity: 0 }, { opacity: 1, offset: 0.15 }, { opacity: 1, offset: 0.7 }, { opacity: 0 }]
+		: [{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none', offset: 0.18 }, { opacity: 1, transform: 'translateY(-4px)', offset: 0.7 }, { opacity: 0, transform: 'translateY(-14px)' }],
+		{ duration: 2200, easing: 'ease-out' });
+	a.onfinish = () => c.remove();
+}
+/** Flash a figure that just changed: green when it went up. */
+const factMemo = {};
+function tickFacts(box) {
+	box.querySelectorAll('.fact').forEach((f) => {
+		const k = f.querySelector('.l').textContent, v = f.querySelector('.v');
+		const t = v.textContent, was = factMemo[k];
+		factMemo[k] = t;
+		const n = (s) => { const m = String(s).match(/-?[\d,.]+/); if (!m) return NaN; const x = parseFloat(m[0].replace(/,/g, '')); return /M\b|M$/.test(s) ? x * 1e6 : /K\b|K$/.test(s) ? x * 1e3 : x; };
+		if (was != null && was !== t && n(t) > n(was)) v.classList.add('tick');
+	});
 }
 
 // ─── block rewards: ALGO paid to Pact accounts for proposing blocks ───
@@ -1451,7 +1609,19 @@ const AlgoPrice = (() => {
 		if (!st.last) return;
 		const chg = st.open ? (st.last - st.open) / st.open : 0;
 		const p = '$' + st.last.toFixed(st.last < 1 ? 4 : 2), c = (chg >= 0 ? '+' : '−') + num(Math.abs(chg) * 100, 2) + '%';
-		$('pxBandV').textContent = p;
+		const bv = $('pxBandV');
+		if (bv.textContent !== p) {
+			// Tick colour on a price change, at most every 1.2s so a busy tape doesn't strobe.
+			const was = st.shown;
+			bv.textContent = p;
+			st.shown = st.last;
+			if (was && Date.now() - (st.flashAt || 0) > 1200) {
+				st.flashAt = Date.now();
+				bv.classList.remove('f-up', 'f-down');
+				void bv.offsetWidth;
+				bv.classList.add(st.last > was ? 'f-up' : 'f-down');
+			}
+		}
 		$('pxBandC').textContent = c;
 		$('pxBandC').className = 'chg ' + (chg > 0 ? 'up' : chg < 0 ? 'down' : '');
 		if (S.tab !== 'tokens') return;
@@ -2785,6 +2955,10 @@ async function poll() {
 				apply(r);
 				fresh.add(r.id);
 			}
+			const dot = document.querySelector('#status .dot');
+			dot.classList.remove('ping');
+			void dot.offsetWidth;
+			dot.classList.add('ping');
 			if (S.tab === 'overview') {
 				renderMonth();
 				renderDep(fresh);
@@ -2836,6 +3010,7 @@ async function boot() {
 	for (const r of S.recent) S.seen.add(r.id);
 
 	bindControls();
+	bindDep();
 	setTab(location.hash.slice(1) || ui.tab || 'overview');
 	AlgoPrice.start();
 	Rewards.init(p.feed.rewards);
@@ -2853,6 +3028,7 @@ async function boot() {
 		setStatus('Reconnecting');
 	}
 	S.ready = true;
+	FeeFig.shown = null; // the catch-up isn't news: show the caught-up total without counting to it
 	renderTab();
 	setInterval(poll, POLL_MS);
 	setInterval(loadMarket, MARKET_POLL_MS);
