@@ -352,6 +352,14 @@
 	#paceRead .down { color: var(--down); font-weight: 700; }
 	.pace-note { margin: 8px 0 0; }
 	.pace-note:empty { display: none; }
+	.seg button:disabled { opacity: 0.45; cursor: default; }
+	.seg button:disabled:hover { color: var(--ink2); }
+	.chk-read { margin: -4px 0 12px; font-size: 13px; line-height: 1.5; color: var(--ink2); max-width: 72ch; }
+	.chk-read b { color: var(--ink); }
+	.chk-read:empty { display: none; }
+	#chkTable td small { display: block; font-size: 11.5px; font-weight: 400; color: var(--muted); }
+	#chkTable td.n { white-space: nowrap; }
+	#chkTable tr.key td { font-weight: 700; border-top: 1px solid var(--base); border-bottom-color: var(--base); }
 
 	.trunk .bt { font: 700 10.5px var(--sans); }
 	.trunk .seg-r { transition: opacity 0.15s; }
@@ -452,12 +460,18 @@
 					<div class="ph"><h2 id="paceTitle">Pace vs last month</h2>
 						<div class="pace-ctl">
 							<div class="seg" id="paceMetric" role="group" aria-label="Measure"><button data-v="fees">Fees</button><button data-v="vol">Volume</button></div>
-							<div class="seg" id="paceUnit" role="group" aria-label="Unit"><button data-v="usd">USD</button><button data-v="algo">ALGO</button></div>
+							<div class="seg" id="paceUnit" role="group" aria-label="Unit"><button data-v="usd">USD</button><button data-v="algo">ALGO</button><button data-v="share" title="Pact's share of Pact + Tinyman volume">Share</button></div>
 						</div>
 					</div>
 					<div class="pace-read"><div id="paceRead"></div><div class="legend" id="paceLegend"></div></div>
 					<div class="chart" id="paceChart"></div>
 					<p class="note pace-note" id="paceNote"></p>
+				</div>
+				<div class="panel">
+					<div class="ph"><h2>Market check</h2><span class="sub" id="chkSub"></span></div>
+					<p class="chk-read" id="chkRead"></p>
+					<div class="tw"><table id="chkTable"></table></div>
+					<p class="note pace-note" id="chkNote"></p>
 				</div>
 				<div class="panel">
 					<div class="ph"><h2>Monthly fees</h2><span class="sub" id="histSub"></span></div>
@@ -1050,24 +1064,39 @@ function cumAt(pts, x) {
 }
 const axisNum = (v) => (v >= 1e6 ? num(v / 1e6, v % 1e6 ? 1 : 0) + 'M' : v >= 1e4 ? num(v / 1e3, 0) + 'K' : num(v, v < 10 && v % 1 ? 1 : 0));
 const signPct = (d) => (d >= 0 ? '+' : '−') + pct(Math.abs(d), 0);
+const signPts = (d) => (d >= 0 ? '+' : '−') + num(Math.abs(d) * 100, 1) + ' pts';
 function renderPace() {
 	const box = $('paceChart'), W = box.clientWidth || 360, H = 220;
 	const m = { l: 52, r: 14, t: 10, b: 24 };
-	const vol = S.pace.m === 'vol', algo = S.pace.u === 'algo';
-	if (algo) PxHist.ensure();
-	if (algo && !PxHist.ready()) {
+	const share = S.pace.u === 'share', algo = S.pace.u === 'algo', vol = share || S.pace.m === 'vol';
+	const wait = (msg) => {
 		$('paceRead').textContent = $('paceLegend').textContent = $('paceNote').textContent = '';
-		box.innerHTML = '<div class="empty" style="height:' + H + 'px">' + (PxHist.failed() ? 'Couldn’t load ALGO price history. Trying again in a minute.' : 'Loading ALGO prices…') + '</div>';
-		return;
+		box.innerHTML = '<div class="empty" style="height:' + H + 'px">' + msg + '</div>';
+	};
+	if (algo) PxHist.ensure();
+	if (share) Bench.ensure();
+	if (algo && !PxHist.ready()) return wait(PxHist.failed() ? 'Couldn’t load ALGO price history. Trying again in a minute.' : 'Loading ALGO prices…');
+	if (share && !Bench.ready()) return wait(Bench.failed() ? 'Couldn’t load Tinyman volume. Trying again in a minute.' : 'Loading Pact and Tinyman volume…');
+	let cur, prev;
+	if (share) {
+		// UTC days (DefiLlama's), so each month runs from the 1st 00:00 UTC.
+		const um = utcMonths();
+		cur = shareCum(um.cur, um.next);
+		prev = shareCum(um.prev, um.cur);
+		if (prev.length) { prev.start = um.prev; prev.len = um.cur - um.prev; } else prev = null;
+		if (!cur.length) return wait('The share starts once the first full day of the month (UTC) is reported.');
+	} else {
+		cur = thisMonthCum(vol, algo);
+		prev = lastMonthCum(vol, algo);
 	}
-	const cur = thisMonthCum(vol, algo), prev = lastMonthCum(vol, algo);
-	const fmtV = algo ? (v) => (v >= 1e6 ? num(v / 1e6, 2) + 'M' : num(v, 0)) + ' ALGO' : vol ? (v) => usd(v) : (v) => usd(v, 2);
+	const fmtV = share ? (v) => pct(v, 1) : algo ? (v) => (v >= 1e6 ? num(v / 1e6, 2) + 'M' : num(v, 0)) + ' ALGO' : vol ? (v) => usd(v) : (v) => usd(v, 2);
 	const len = S.feed.monthEnd ? S.feed.monthEnd - S.feed.genesis : Math.max(86400, Date.now() / 1000 - S.feed.genesis);
 	const xMax = Math.max(len, prev ? prev.len : 0);
-	const yMax = niceMax(Math.max(cur[cur.length - 1][1], prev ? prev[prev.length - 1][1] : 0) * 1.06);
+	const top = Math.max(...cur.map((p) => p[1]), ...(prev ? prev.map((p) => p[1]) : [0]));
+	const yMax = share ? Math.min(1, niceMax(top * 1.15)) : niceMax(top * 1.06);
 	const X = (s) => m.l + (s / xMax) * (W - m.l - m.r), Y = (v) => m.t + (1 - v / yMax) * (H - m.t - m.b);
 	const path = (pts) => pts.map((p, i) => (i ? 'L' : 'M') + f1(X(p[0])) + ' ' + f1(Y(p[1]))).join('');
-	let g = yGrid(m, W, Y, yMax, 4, algo ? axisNum : axisUsd);
+	let g = yGrid(m, W, Y, yMax, 4, share ? (v) => pct(v, 0) : algo ? axisNum : axisUsd);
 	const days = Math.round(xMax / 86400);
 	for (let d = 0; d <= days; d += days > 20 ? 5 : 2) {
 		const x = X(d * 86400);
@@ -1075,10 +1104,10 @@ function renderPace() {
 	}
 	const curName = S.feed.monthEnd ? monthName(S.feed.genesis) : 'Total';
 	if (prev) g += '<path d="' + path(prev) + '" fill="none" stroke="var(--cmp)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
-	const area = path(cur) + 'L' + f1(X(cur[cur.length - 1][0])) + ' ' + Y(0) + 'L' + X(0) + ' ' + Y(0) + 'Z';
-	g += '<path d="' + area + '" fill="var(--ink)" fill-opacity=".06"/>';
-	g += '<path d="' + path(cur) + '" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
 	const e = cur[cur.length - 1];
+	// A running total gets an area; a share is a rate, so it stays a line.
+	if (!share) g += '<path d="' + path(cur) + 'L' + f1(X(e[0])) + ' ' + Y(0) + 'L' + X(0) + ' ' + Y(0) + 'Z" fill="var(--ink)" fill-opacity=".06"/>';
+	g += '<path d="' + path(cur) + '" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
 	g += '<circle cx="' + f1(X(e[0])) + '" cy="' + f1(Y(e[1])) + '" r="4" fill="var(--ink)" stroke="var(--panel)" stroke-width="2"/>';
 	g += '<line class="xhair" id="paceX" y1="' + m.t + '" y2="' + (H - m.b) + '" x1="0" x2="0" opacity="0"/>';
 	box.innerHTML = svgOpen(W, H) + g + '</svg>';
@@ -1086,12 +1115,14 @@ function renderPace() {
 	$('paceLegend').innerHTML = '<span class="k" style="--c:var(--ink)"><i class="lk"></i>' + esc(curName) + '</span>' + (prev ? '<span class="k" style="--c:var(--cmp)"><i class="lk"></i>' + esc(monthName(prev.start)) + '</span>' : '');
 	// Where this month stands against last month at the same point.
 	const prevAt = prev && e[0] >= prev[0][0] ? cumAt(prev, e[0]) : 0;
-	const chg = prevAt > 0 ? e[1] / prevAt - 1 : null;
-	$('paceRead').innerHTML = '<b>' + fmtV(e[1]) + '</b> ' + (vol ? 'traded' : 'in fees') + ' so far' +
-		(chg != null ? ', <span class="' + (chg >= 0 ? 'up' : 'down') + '">' + signPct(chg) + '</span> vs ' + esc(monthName(prev.start)) + ' by this point' : '');
-	// In ALGO, say what the price did, so the gap between the two views is explained.
+	const chg = prevAt > 0 ? (share ? e[1] - prevAt : e[1] / prevAt - 1) : null;
+	$('paceRead').innerHTML = '<b>' + fmtV(e[1]) + '</b> ' + (share ? 'of Pact + Tinyman volume' : vol ? 'traded' : 'in fees') + ' so far' +
+		(chg != null ? ', <span class="' + (chg >= 0 ? 'up' : 'down') + '">' + (share ? signPts(chg) : signPct(chg)) + '</span> vs ' + esc(monthName(prev.start)) + ' by this point' : '');
 	let note = '';
-	if (algo) {
+	if (share) {
+		note = 'Daily volume from DefiLlama, UTC days through ' + dayLabel(Bench.lastDay()) + '. A share cancels out whatever moves every DEX at once: volatility, ALGO’s price, the market’s mood.';
+	} else if (algo) {
+		// Say what the price did, so the gap between the USD and ALGO views is explained.
 		note = 'Each hour converted at its own ALGO price (' + PxHist.source() + ').';
 		const cu = thisMonthCum(vol, false), pu = prev && lastMonthCum(vol, false);
 		const nowU = cu[cu.length - 1][1], prevU = pu && e[0] >= pu[0][0] ? cumAt(pu, e[0]) : 0;
@@ -1101,18 +1132,76 @@ function renderPace() {
 	$('paceNote').textContent = note;
 	hover(box, (x) => {
 		const s = Math.max(0, Math.min(xMax, ((x - m.l) / (W - m.l - m.r)) * xMax));
-		const day = Math.floor(s / 86400) + 1;
 		const xh = box.querySelector('#paceX');
 		xh.setAttribute('x1', f1(X(s)));
 		xh.setAttribute('x2', f1(X(s)));
 		xh.setAttribute('opacity', '1');
 		const rows = [];
-		const a = s <= e[0] ? cumAt(cur, s) : null, b = prev && s >= prev[0][0] ? cumAt(prev, s) : null;
+		const a = s >= cur[0][0] && s <= e[0] ? cumAt(cur, s) : null, b = prev && s >= prev[0][0] ? cumAt(prev, s) : null;
 		if (a != null) rows.push({ c: 'var(--ink)', k: curName, v: fmtV(a) });
 		if (b != null) rows.push({ c: 'var(--cmp)', k: monthName(prev.start), v: fmtV(b) });
-		if (a != null && b > 0) rows.push({ k: 'Difference', v: signPct(a / b - 1) });
-		return rows.length ? tipRows('Day ' + day + ', ' + hhmmOf(s), rows) : null;
+		if (a != null && b > 0) rows.push({ k: 'Difference', v: share ? signPts(a - b) : signPct(a / b - 1) });
+		const title = share ? 'Through day ' + Math.max(1, Math.floor(s / 86400)) : 'Day ' + (Math.floor(s / 86400) + 1) + ', ' + hhmmOf(s);
+		return rows.length ? tipRows(title, rows) : null;
 	}, () => { const xh = box.querySelector('#paceX'); if (xh) xh.setAttribute('opacity', '0'); });
+}
+
+/** This month vs the same UTC days of last month, with the market's own moves alongside Pact's. */
+function renderCheck() {
+	const el = $('chkTable');
+	PxHist.ensure();
+	Bench.ensure();
+	const wait = (msg) => {
+		el.innerHTML = '';
+		$('chkSub').textContent = $('chkNote').textContent = '';
+		$('chkRead').textContent = msg;
+	};
+	if (!PxHist.ready() || !Bench.ready())
+		return wait(PxHist.failed() || Bench.failed() ? 'Couldn’t load prices or Tinyman volume. Trying again in a minute.' : 'Loading ALGO prices and DEX volume…');
+	const um = utcMonths(), last = Bench.lastDay();
+	const n = Math.floor((last - um.cur) / 86400) + 1;
+	if (n < 1) return wait('Starts once the first full day of the month (UTC) is reported.');
+	const pn = Math.min(n, (um.cur - um.prev) / 86400);
+	const span = (start, k) => {
+		const o = { px: PxHist.stats(start, start + k * 86400), pact: 0, tm: 0, pactA: 0, tmA: 0, big: [0, 0] };
+		for (let i = 0; i < k; i++) {
+			const d = start + i * 86400, a = Bench.pact(d), t = Bench.tm(d), p = PxHist.at(d, 86400);
+			o.pact += a; o.tm += t; o.pactA += a / p; o.tmA += t / p;
+			if (a > o.big[1]) o.big = [d, a];
+		}
+		o.share = o.pact + o.tm ? o.pact / (o.pact + o.tm) : null;
+		return o;
+	};
+	const A = span(um.prev, pn), B = span(um.cur, n);
+	const mA = MON[loc(um.prev + 43200).m], mB = MON[loc(um.cur + 43200).m];
+	const algoAmt = (v) => (v >= 1e6 ? num(v / 1e6, v >= 1e8 ? 0 : v >= 1e7 ? 1 : 2) + 'M' : num(v / 1e3, v >= 1e4 ? 0 : 1) + 'K');
+	const ch = (a, b) => (a > 0 && b != null ? signPct(b / a - 1) : '–');
+	const per = (v, path) => (path > 0 ? v / (path * 100) : null);
+	const rows = [
+		['ALGO price', 'average, weighted by trading', '$' + A.px.vwap.toFixed(4), '$' + B.px.vwap.toFixed(4), ch(A.px.vwap, B.px.vwap)],
+		['ALGO volatility', 'annualized, from hourly moves', pct(A.px.vol, 0), pct(B.px.vol, 0), ch(A.px.vol, B.px.vol)],
+		['ALGO price movement', 'every hourly move added up', pct(A.px.path, 0), pct(B.px.path, 0), ch(A.px.path, B.px.path)],
+		['Exchange volume', PxHist.source() + ', in ALGO', algoAmt(A.px.base), algoAmt(B.px.base), ch(A.px.base, B.px.base)],
+		['Tinyman volume', 'in ALGO · in USD', algoAmt(A.tmA) + '<small>' + usd(A.tm) + '</small>', algoAmt(B.tmA) + '<small>' + usd(B.tm) + '</small>', ch(A.tmA, B.tmA) + '<small>' + ch(A.tm, B.tm) + '</small>'],
+		['Pact volume', 'in ALGO · in USD', algoAmt(A.pactA) + '<small>' + usd(A.pact) + '</small>', algoAmt(B.pactA) + '<small>' + usd(B.pact) + '</small>', ch(A.pactA, B.pactA) + '<small>' + ch(A.pact, B.pact) + '</small>'],
+		['Pact share', 'of Pact + Tinyman volume', pct(A.share, 1), pct(B.share, 1), A.share != null && B.share != null ? signPts(B.share - A.share) : '–', 'key'],
+		['Pact volume per 1% move', 'ALGO traded per 1% ALGO move', algoAmt(per(A.pactA, A.px.path)), algoAmt(per(B.pactA, B.px.path)), ch(per(A.pactA, A.px.path), per(B.pactA, B.px.path))],
+		['Tinyman volume per 1% move', 'the same, for Tinyman', algoAmt(per(A.tmA, A.px.path)), algoAmt(per(B.tmA, B.px.path)), ch(per(A.tmA, A.px.path), per(B.tmA, B.px.path))],
+		['Pact’s biggest day', 'its share of the period’s volume', A.big[1] ? dayLabel(A.big[0]) + '<small>' + pct(A.big[1] / A.pact, 0) + ' · ' + usd(A.big[1]) + '</small>' : '–', B.big[1] ? dayLabel(B.big[0]) + '<small>' + pct(B.big[1] / B.pact, 0) + ' · ' + usd(B.big[1]) + '</small>' : '–', '']
+	];
+	el.innerHTML = '<thead><tr><th>Same days</th><th class="n">' + mA + ' 1–' + pn + '</th><th class="n">' + mB + ' 1–' + n + '</th><th class="n">Change</th></tr></thead><tbody>' +
+		rows.map((r) => '<tr' + (r[5] ? ' class="' + r[5] + '"' : '') + '><td>' + esc(r[0]) + '<small>' + esc(r[1]) + '</small></td><td class="n">' + r[2] + '</td><td class="n">' + r[3] + '</td><td class="n">' + r[4] + '</td></tr>').join('') + '</tbody>';
+	$('chkSub').textContent = 'UTC days through ' + dayLabel(last);
+	// The verdict: did ALGO move more or less, and did Pact's share move with it?
+	const mv = B.px.path / A.px.path - 1, sh = B.share - A.share, prevName = monthName(um.prev);
+	let read = Math.abs(mv) < 0.05 ? 'ALGO moved about as much as in ' + prevName + ' over the same days. ' : 'ALGO moved <b>' + pct(Math.abs(mv), 0) + (mv < 0 ? ' less' : ' more') + '</b> than in ' + prevName + ' over the same days, which on its own means ' + (mv < 0 ? 'less' : 'more') + ' trading on every DEX. ';
+	if (Math.abs(sh) < 0.005) read += 'Pact’s share of Pact + Tinyman volume held at about <b>' + pct(B.share, 1) + '</b>, so Pact kept pace with the market.';
+	else {
+		read += 'Pact’s share of Pact + Tinyman volume ' + (sh > 0 ? 'rose' : 'fell') + ' from <b>' + pct(A.share, 1) + '</b> to <b>' + pct(B.share, 1) + '</b>, ';
+		read += sh > 0 ? (mv <= 0.05 ? 'so the growth isn’t coming from volatility.' : 'so Pact grew faster than the market, not just with it.') : mv > 0.05 ? 'so the rise is mostly the market moving more.' : 'so Pact lost ground to Tinyman.';
+	}
+	$('chkRead').innerHTML = read;
+	$('chkNote').textContent = 'Pact and Tinyman daily volume from DefiLlama; ALGO prices and exchange volume from ' + PxHist.source() + '. Share cancels out anything that moves every DEX at once. Volume per 1% move adjusts for how far ALGO travelled, since arbitrage grows with it. One big day can carry a month, so check the last row.';
 }
 const hhmmOf = (s) => String(Math.floor((s % 86400) / 3600)).padStart(2, '0') + ':00';
 
@@ -1459,7 +1548,7 @@ const PxHist = (() => {
 	async function binance(base, start, got) {
 		for (let t = start; ; ) {
 			const k = await getJSON(base + '/api/v3/klines?symbol=ALGOUSDT&interval=1h&limit=1000&startTime=' + t * 1000, {});
-			for (const c of k) got.set(c[0] / 1000, +c[5] > 0 ? [+c[7], +c[5]] : [+c[4], 1]);
+			for (const c of k) got.set(c[0] / 1000, +c[5] > 0 ? [+c[7], +c[5], +c[4]] : [+c[4], 1, +c[4]]);
 			if (k.length < 1000) return;
 			t = k[k.length - 1][0] / 1000 + 3600;
 		}
@@ -1468,7 +1557,7 @@ const PxHist = (() => {
 		const now = Date.now() / 1000, iso = (s) => new Date(s * 1000).toISOString();
 		for (let t = start; t < now; t += 300 * 3600) {
 			const k = await getJSON('https://api.exchange.coinbase.com/products/ALGO-USD/candles?granularity=3600&start=' + iso(t) + '&end=' + iso(Math.min(now, t + 299 * 3600)), {});
-			for (const c of k) { const p = (c[1] + c[2] + c[4]) / 3; got.set(c[0], c[5] > 0 ? [p * c[5], c[5]] : [p, 1]); } // [time, low, high, open, close, volume]
+			for (const c of k) { const p = (c[1] + c[2] + c[4]) / 3; got.set(c[0], c[5] > 0 ? [p * c[5], c[5], c[4]] : [p, 1, c[4]]); } // [time, low, high, open, close, volume]
 		}
 	}
 	/** Fetch from the start of last month (or, once loaded, from the newest hour held) to now. */
@@ -1494,7 +1583,20 @@ const PxHist = (() => {
 		if (ok) state = 'ok';
 		else if (state !== 'ok') { state = 'failed'; setTimeout(ensure, 61e3); }
 		busy = false;
-		if (S.tab === 'overview' && S.pace.u === 'algo') renderPace();
+		if (S.tab === 'overview') { renderPace(); renderCheck(); }
+	}
+	/** ALGO over [from, to): average price, annualized volatility and total movement (sum of |hourly log moves|), exchange volume. */
+	function stats(from, to) {
+		let q = 0, b = 0, path = 0, ss = 0, n = 0, prev = (h.get(from - 3600) || [])[2];
+		for (let x = from; x < to; x += 3600) {
+			const v = h.get(x);
+			if (!v) continue;
+			q += v[0];
+			b += v[1];
+			if (prev) { const r = Math.log(v[2] / prev); path += Math.abs(r); ss += r * r; n++; }
+			prev = v[2];
+		}
+		return { vwap: b ? q / b : null, base: b, path, vol: n ? Math.sqrt((ss / n) * 8760) : null };
 	}
 	/** Average ALGO price over [t, t + span), weighted by exchange volume. */
 	function at(t, span) {
@@ -1505,8 +1607,55 @@ const PxHist = (() => {
 		for (let x = Math.floor(t / 3600) * 3600 - 3600, n = 0; n < 24; n++, x -= 3600) { const v = h.get(x); if (v) return v[0] / v[1]; }
 		return AlgoPrice.price() || S.feed.algoUsd || 1;
 	}
-	return { ensure, at, ready: () => state === 'ok', failed: () => state === 'failed', source: () => src };
+	return { ensure, at, stats, ready: () => state === 'ok', failed: () => state === 'failed', source: () => src };
 })();
+
+// ─── Pact and Tinyman daily volume (DefiLlama, UTC days): the benchmark for share and the market check ───
+const Bench = (() => {
+	let pact = null, tm = null, state = 'idle', lastTry = 0, busy = false;
+	async function ensure() {
+		if (busy || Date.now() - lastTry < (state === 'ok' ? 3600e3 : 60e3)) return;
+		busy = true;
+		lastTry = Date.now();
+		if (state !== 'ok') state = 'loading';
+		try {
+			const get = (dex) => getJSON('https://api.llama.fi/summary/dexs/' + dex + '?dataType=dailyVolume&excludeTotalDataChartBreakdown=true', {});
+			const [p, t] = await Promise.all([get('pact'), get('tinyman')]);
+			const rows = (j) => new Map((j.totalDataChart || []).map((r) => [r[0], +r[1] || 0]));
+			pact = rows(p);
+			tm = rows(t);
+			state = 'ok';
+		} catch (e) {
+			if (state !== 'ok') { state = 'failed'; setTimeout(ensure, 61e3); }
+		}
+		busy = false;
+		if (S.tab === 'overview') { renderPace(); renderCheck(); }
+	}
+	/** The latest UTC day that is over and reported for both. */
+	function lastDay() {
+		const now = Date.now() / 1000;
+		let d = Math.floor(now / 86400) * 86400 - 86400;
+		for (let i = 0; i < 10; i++, d -= 86400) if (pact.has(d) && tm.has(d)) return d;
+		return 0;
+	}
+	return { ensure, lastDay, pact: (d) => pact.get(d) || 0, tm: (d) => tm.get(d) || 0, ready: () => state === 'ok', failed: () => state === 'failed' };
+})();
+/** UTC month starts for the tracker's current month and the one before it. */
+function utcMonths() {
+	const p = loc(S.feed.genesis);
+	return { cur: Date.UTC(p.y, p.m, 1) / 1000, next: Date.UTC(p.y, p.m + 1, 1) / 1000, prev: Date.UTC(p.y, p.m - 1, 1) / 1000 };
+}
+/** A month's running share of Pact + Tinyman volume, one point per finished UTC day. */
+function shareCum(start, end) {
+	const pts = [], last = Bench.lastDay();
+	let p = 0, t = 0;
+	for (let d = start; d < end && d <= last; d += 86400) {
+		p += Bench.pact(d);
+		t += Bench.tm(d);
+		if (p + t > 0) pts.push([d + 86400 - start, p / (p + t)]);
+	}
+	return pts;
+}
 
 // ─── FLOW ───
 function win(kind) {
@@ -2489,6 +2638,7 @@ const LiveLiq = (() => {
 function renderOverview() {
 	renderMonth();
 	renderPace();
+	renderCheck();
 	renderOvLines();
 	renderOvLiq();
 	renderHist();
@@ -2546,7 +2696,12 @@ function bindControls() {
 	});
 	const pm = $('paceMetric'), pu = $('paceUnit');
 	const syncP = () => {
-		pm.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.v === S.pace.m ? 'true' : 'false'));
+		const share = S.pace.u === 'share'; // a share is by volume only
+		pm.querySelectorAll('button').forEach((b) => {
+			b.disabled = share && b.dataset.v === 'fees';
+			b.title = b.disabled ? 'Share is measured by volume' : '';
+			b.setAttribute('aria-pressed', b.dataset.v === (share ? 'vol' : S.pace.m) ? 'true' : 'false');
+		});
 		pu.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.v === S.pace.u ? 'true' : 'false'));
 	};
 	const setP = (k) => (e) => { const b = e.target.closest('[data-v]'); if (!b) return; S.pace[k] = b.dataset.v; syncP(); saveUi(); renderPace(); };
