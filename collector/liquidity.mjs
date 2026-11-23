@@ -216,8 +216,42 @@ export function buildLiquidity(state, nowS) {
 		if (i < 0 || i >= daily.length) continue;
 		daily[i][col[e[7]] + (e[1] > 0 ? 0 : 1)] = round2(daily[i][col[e[7]] + (e[1] > 0 ? 0 : 1)] + (e[6] ?? 0));
 	}
-	const events = lq.events.slice(-250).reverse();
+	const events = lq.events.slice(-400).reverse();
 	for (const e of events) label(e[2]);
 	const windows = { '24h': win(nowS - 86400), '7d': win(today - 6 * 86400), '30d': win(today - 29 * 86400) };
-	return { from: lq.from, big: BIG, events: events.map((e) => [e[0], e[1], e[2], e[3], e[4] == null ? null : Number(e[4].toPrecision(6)), e[5] == null ? null : Number(e[5].toPrecision(6)), e[6], e[7], e[8], e[9]]), windows, daily, pools };
+	// Per wallet: [address, added $, removed $, adds, removes, pools, last action ts, [busiest pool ids], {type: [added, removed, adds, removes]}]
+	const wal = (from) => {
+		const by = new Map();
+		for (const e of lq.events) {
+			if (e[0] < from) continue;
+			const r = by.get(e[3]) ?? { add: 0, rem: 0, na: 0, nr: 0, pools: new Map(), last: 0, t: {} };
+			if (e[1] > 0) { r.add += e[6] ?? 0; r.na++; } else { r.rem += e[6] ?? 0; r.nr++; }
+			const tt = (r.t[e[7]] ??= [0, 0, 0, 0]);
+			if (e[1] > 0) { tt[0] += e[6] ?? 0; tt[2]++; } else { tt[1] += e[6] ?? 0; tt[3]++; }
+			r.pools.set(e[2], (r.pools.get(e[2]) ?? 0) + (e[6] ?? 0));
+			r.last = Math.max(r.last, e[0]);
+			by.set(e[3], r);
+		}
+		return [...by.entries()]
+			.map(([a, r]) => {
+				const top = [...r.pools.entries()].sort((x, y) => y[1] - x[1]).slice(0, 4).map(([id]) => id);
+				top.forEach(label);
+				const t = Object.fromEntries(Object.entries(r.t).map(([k, v]) => [k, [round2(v[0]), round2(v[1]), v[2], v[3]]]));
+				return [a, round2(r.add), round2(r.rem), r.na, r.nr, r.pools.size, r.last, top, t];
+			})
+			.sort((x, y) => y[1] + y[2] - (x[1] + x[2]))
+			.slice(0, 80);
+	};
+	const wallets = { '24h': wal(nowS - 86400), '7d': wal(today - 6 * 86400), '30d': wal(today - 29 * 86400) };
+	// For the live page: the Vault round scanned up to, each pool's asset order, and token
+	// prices/decimals, so it can decode and value new events itself between collector runs.
+	const pa = Object.fromEntries(Object.entries(lq.pools).map(([id, v]) => [id, [v.a, v.b, v.t]]));
+	const assets = {};
+	for (const v of Object.values(lq.pools)) {
+		for (const a of [v.a, v.b]) {
+			const k = String(a), p = px[k];
+			if (!assets[k]) assets[k] = [p?.[0] ?? null, p?.[1] ?? lq.dec[k] ?? (a === 0 ? 6 : null), p?.[2] ?? (a === 0 ? 'ALGO' : null)];
+		}
+	}
+	return { from: lq.from, big: BIG, round: lq.round, pa, assets, wallets, events: events.map((e) => [e[0], e[1], e[2], e[3], e[4] == null ? null : Number(e[4].toPrecision(6)), e[5] == null ? null : Number(e[5].toPrecision(6)), e[6], e[7], e[8], e[9]]), windows, daily, pools };
 }

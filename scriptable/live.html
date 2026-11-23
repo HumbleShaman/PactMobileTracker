@@ -281,6 +281,10 @@
 	.tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 11px; font-weight: 600; color: var(--ink2); background: var(--sunk); white-space: nowrap; }
 	.tag.flag-none { color: var(--panel); background: var(--ink); }
 	.tag.flag-route { color: var(--ink); background: transparent; box-shadow: inset 0 0 0 1px var(--ink); }
+	button.tag { border: 0; cursor: pointer; }
+	.wl { padding: 0; border: 0; background: none; font: inherit; font-weight: 600; color: var(--ink); text-decoration: underline; text-decoration-color: var(--base); text-underline-offset: 3px; }
+	.wl:hover { text-decoration-color: currentColor; }
+	.wl-x { font-size: 11px; color: var(--muted); }
 	.inbar { position: relative; height: 4px; margin-top: 5px; border-radius: 2px; background: var(--sunk); overflow: hidden; }
 	.inbar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: var(--ink); }
 	@media (max-width: 560px) {
@@ -520,6 +524,7 @@
 		<div class="toolbar">
 			<div class="seg" data-win="liq" role="group" aria-label="Time window"><button data-w="24h">24h</button><button data-w="7d">7 days</button><button data-w="30d">30 days</button></div>
 			<div class="seg" id="liqType" role="group" aria-label="Pool type"><button data-t="all">All</button><button data-t="cl">clMM</button><button data-t="w">Weighted</button><button data-t="cp">Classic</button></div>
+			<span id="liqWho"></span>
 			<span class="note" id="liqCov"></span>
 		</div>
 		<div class="panel"><div class="sumrow" id="liqSum"></div></div>
@@ -531,6 +536,11 @@
 			<div class="ph"><h2>By pool</h2><span class="sub" id="liqPoolsSub"></span></div>
 			<div class="tw"><table id="liqPools"></table></div>
 			<button class="showall" id="liqPoolsMore" type="button" hidden></button>
+		</div>
+		<div class="panel" id="liqWalletsPanel">
+			<div class="ph"><h2>By wallet</h2><span class="sub" id="liqWalletsSub"></span></div>
+			<div class="tw"><table id="liqWallets"></table></div>
+			<button class="showall" id="liqWalletsMore" type="button" hidden></button>
 		</div>
 		<div class="panel">
 			<div class="ph"><h2>Adds and removes</h2><span class="sub" id="liqEvSub"></span></div>
@@ -654,13 +664,15 @@ const S = {
 	liqType: 'all',
 	liqAll: false,
 	liqPoolsAll: false,
+	liqWalletsAll: false,
+	liqWallet: null,
 	poolType: 'all',
 	poolQuery: '',
 	poolsAll: false,
 	rosterAll: false,
 	gapAll: false,
 	gapFilter: 'all',
-	sort: { roster: ['vol', -1], pools: ['vol', -1], gap: ['tmVol', -1], big: ['usd', -1], liqPools: ['gross', -1], liqEvents: ['t', -1] }
+	sort: { roster: ['vol', -1], pools: ['vol', -1], gap: ['tmVol', -1], big: ['usd', -1], liqPools: ['gross', -1], liqEvents: ['t', -1], liqWallets: ['gross', -1] }
 };
 
 // Opened in a normal browser (not Scriptable): the "since you last checked" baseline lives in localStorage.
@@ -1961,52 +1973,149 @@ function liqTotals(L, w) {
 	for (const r of L.windows[w] || []) if (liqOn(r[6])) { t.add += r[1]; t.rem += r[2]; t.na += r[3]; t.nr += r[4]; t.lps += r[5]; }
 	return t;
 }
+// NFD names for wallets: looked up 20 at a time, cached on this device for a day.
+const Names = (() => {
+	const KEY = 'pactTracker.nfd.v1';
+	const cache = store.get(KEY) || {};
+	const pending = new Set();
+	let timer = null;
+	const get = (a) => { const c = cache[a]; return c && Date.now() - c.at < 864e5 ? c.n : undefined; };
+	function want(list, done) {
+		for (const a of list) if (get(a) === undefined) pending.add(a);
+		if (!pending.size || timer) return;
+		timer = setTimeout(async () => {
+			timer = null;
+			const batch = Array.from(pending);
+			pending.clear();
+			for (let i = 0; i < batch.length; i += 20) {
+				const chunk = batch.slice(i, i + 20);
+				try {
+					const r = await fetch('https://api.nf.domains/nfd/lookup?' + chunk.map((a) => 'address=' + a).join('&') + '&view=tiny&allowUnverified=false');
+					const j = r.status === 404 ? {} : await r.json();
+					for (const a of chunk) cache[a] = { n: (j[a] && j[a].name) || null, at: Date.now() };
+				} catch (e) {
+					for (const a of chunk) cache[a] = { n: null, at: Date.now() - 864e5 + 36e5 }; // try again in an hour
+				}
+			}
+			const keys = Object.keys(cache);
+			if (keys.length > 3000) keys.sort((x, y) => cache[x].at - cache[y].at).slice(0, keys.length - 3000).forEach((k) => delete cache[k]);
+			store.set(KEY, cache);
+			if (done) done();
+		}, 60);
+	}
+	return { get, want };
+})();
+/** A wallet's display name: a known actor's name, else its NFD, else a short address. */
+function walletName(a) {
+	const act = actorOf(a);
+	if (act.line !== 'wallets' && act.line !== 'bots') return act.name;
+	return Names.get(a) || short(a);
+}
+/** Wallet cell: the name filters the Liquidity tab to that wallet; "allo" opens it in the explorer. */
+const walletCell = (a) => '<span style="white-space:nowrap"><button class="wl" type="button" data-wallet="' + a + '" title="Show only ' + a + '">' + esc(walletName(a)) + '</button> <a class="wl-x" href="https://allo.info/account/' + a + '" target="_blank" rel="noopener" title="Open ' + a + ' on allo.info">allo</a></span>';
+
 function renderLiq() {
 	const L = S.market && S.market.liquidity;
 	if (!L) return void ($('liqSum').innerHTML = '<div class="empty">' + (S.market ? 'Liquidity tracking starts with the next collector run.' : 'Loading market data…') + '</div>');
-	const w = S.win.liq, t = liqTotals(L, w), net = t.add - t.rem;
-	$('liqCov').textContent = 'clMM: every add and remove · weighted and classic: $' + num(L.big) + '+ only · since ' + dayLabel(L.from);
+	const w = S.win.liq, from = liqFrom(w), who = S.liqWallet;
+	$('liqCov').textContent = 'clMM: every add and remove · weighted and classic: $' + num(L.big) + '+ only (classic checked every 30 min) · since ' + dayLabel(L.from) + ' · ' + LiveLiq.status();
+	$('liqWho').innerHTML = who ? '<button class="tag flag-route" type="button" id="liqWhoClear" title="Show all wallets">Wallet: ' + esc(walletName(who)) + ' · clear</button>' : '';
+	const evAll = L.events.filter((e) => e[0] >= from && liqOn(e[7]) && (!who || e[3] === who));
+
+	// Totals: the collector's complete windows; for one wallet, its own row (all types) or its events.
+	let t;
+	if (!who) t = liqTotals(L, w);
+	else {
+		const row = (L.wallets && L.wallets[w] || []).find((r) => r[0] === who);
+		t = { add: 0, rem: 0, na: 0, nr: 0, lps: 1 };
+		if (row) {
+			for (const [k, v] of Object.entries(row[8] || {})) if (liqOn(k)) { t.add += v[0]; t.rem += v[1]; t.na += v[2]; t.nr += v[3]; }
+		} else {
+			for (const e of evAll) if (e[1] > 0) { t.add += e[6] || 0; t.na++; } else { t.rem += e[6] || 0; t.nr++; }
+		}
+	}
+	const net = t.add - t.rem;
 	$('liqSum').innerHTML =
 		fact('Added', usd(t.add), num(t.na) + ' adds') +
 		fact('Removed', usd(t.rem), num(t.nr) + ' removes') +
 		'<div class="fact"><div class="l">Net</div><div class="v">' + (net >= 0 ? '+' : '−') + usd(Math.abs(net)) + '</div><div class="d ' + (net >= 0 ? 'up' : 'down') + '">' + (net >= 0 ? 'Net inflow' : 'Net outflow') + '</div></div>' +
-		fact('Wallets', num(t.lps), 'added or removed');
+		(who ? fact('Wallet', esc(walletName(who)), '<a href="https://allo.info/account/' + who + '" target="_blank" rel="noopener">' + short(who) + '</a>') : fact('Wallets', num(t.lps), 'added or removed'));
 	renderLiqChart(L);
-	// By pool
-	const rows = (L.windows[w] || []).filter((r) => liqOn(r[6])).map((r) => {
-		const m = L.pools[r[0]] || ['Pool ' + r[0], '?', '?', r[6], null, null];
-		return { id: r[0], name: m[0], type: r[6], fee: m[4], tvl: m[5], add: r[1], rem: r[2], net: r[1] - r[2], gross: r[1] + r[2], n: r[3] + r[4], na: r[3], nr: r[4], lps: r[5], pct: m[5] ? (r[1] - r[2]) / m[5] : null };
+
+	// By pool: complete windows, or this wallet's events.
+	let rows;
+	if (!who) {
+		rows = (L.windows[w] || []).filter((r) => liqOn(r[6])).map((r) => ({ id: r[0], add: r[1], rem: r[2], na: r[3], nr: r[4], lps: r[5], type: r[6] }));
+	} else {
+		const by = new Map();
+		for (const e of evAll) {
+			const r = by.get(e[2]) || { id: e[2], add: 0, rem: 0, na: 0, nr: 0, lps: 1, type: e[7] };
+			if (e[1] > 0) { r.add += e[6] || 0; r.na++; } else { r.rem += e[6] || 0; r.nr++; }
+			by.set(e[2], r);
+		}
+		rows = Array.from(by.values());
+	}
+	rows = rows.map((r) => {
+		const m = L.pools[r.id] || ['Pool ' + r.id, '?', '?', r.type, null, null];
+		return Object.assign(r, { name: m[0], fee: m[4], tvl: m[5], net: r.add - r.rem, gross: r.add + r.rem, n: r.na + r.nr, pct: m[5] ? (r.add - r.rem) / m[5] : null });
 	});
 	const maxNet = Math.max.apply(null, rows.map((r) => Math.abs(r.net)).concat([1]));
-	$('liqPoolsSub').textContent = num(rows.length) + ' pools with adds or removes';
+	$('liqPoolsSub').textContent = num(rows.length) + ' pools with adds or removes' + (who ? ' by this wallet' : '');
 	table($('liqPools'), 'liqPools', [
-		{ k: 'name', label: 'Pool', fmt: (r) => '<span class="who"><span class="t"><b><a href="https://pact.fi/pool/' + r.id + '" target="_blank" rel="noopener">' + esc(r.name) + '</a></b><small>' + esc(LQ_TYPE[r.type] || '') + (r.fee != null ? ' · ' + feeTier(r.fee) : '') + '</small></span></span>' },
+		{ k: 'name', label: 'Pool', fmt: (r) => '<span class="who"><span class="t"><b><a href="https://pact.fi/pool/' + r.id + '" target="_blank" rel="noopener">' + esc(r.name) + '</a></b><small>' + esc(LQ_TYPE[r.type] || '') + (r.fee != null ? ' · ' + feeTier(r.fee) : '') + (r.tvl != null ? ' · TVL ' + usd(r.tvl) : '') + '</small></span></span>' },
 		{ k: 'add', label: 'Added', n: 1, fmt: (r) => (r.add ? usd(r.add) : '–') },
 		{ k: 'rem', label: 'Removed', n: 1, fmt: (r) => (r.rem ? usd(r.rem) : '–') },
 		{ k: 'net', label: 'Net', n: 1, fmt: (r) => '<span style="white-space:nowrap">' + (r.net >= 0 ? '+' : '−') + usd(Math.abs(r.net)) + '</span>' + netBar(r.net, maxNet) },
-		{ k: 'n', label: 'Events', n: 1, opt: 1, fmt: (r) => num(r.na) + ' / ' + num(r.nr) },
+		{ k: 'n', label: 'Adds / removes', n: 1, opt: 1, fmt: (r) => num(r.na) + ' / ' + num(r.nr) },
 		{ k: 'lps', label: 'Wallets', n: 1, opt: 1, fmt: (r) => num(r.lps) },
-		{ k: 'tvl', label: 'TVL now', n: 1, opt: 1, fmt: (r) => (r.tvl == null ? '–' : usd(r.tvl)) },
 		{ k: 'pct', label: 'Net / TVL', n: 1, opt: 1, fmt: (r) => (r.pct == null ? '–' : (r.pct >= 0 ? '+' : '−') + pct(Math.abs(r.pct))) }
 	], rows, S.liqPoolsAll ? 0 : 25);
 	moreBtn($('liqPoolsMore'), rows.length, 25, S.liqPoolsAll, 'pools', () => { S.liqPoolsAll = !S.liqPoolsAll; renderLiq(); });
+
+	// By wallet (hidden while one wallet is selected).
+	$('liqWalletsPanel').hidden = !!who;
+	const wrows = who ? [] : (L.wallets && L.wallets[w] || []).map((r) => {
+		const tt = { add: 0, rem: 0, na: 0, nr: 0 };
+		for (const [k, v] of Object.entries(r[8] || {})) if (liqOn(k)) { tt.add += v[0]; tt.rem += v[1]; tt.na += v[2]; tt.nr += v[3]; }
+		return { a: r[0], name: walletName(r[0]), add: tt.add, rem: tt.rem, net: tt.add - tt.rem, gross: tt.add + tt.rem, na: tt.na, nr: tt.nr, n: tt.na + tt.nr, pools: r[5], last: r[6], top: (r[7] || []).map((id) => (L.pools[id] || ['Pool ' + id])[0]) };
+	}).filter((r) => r.n > 0);
+	if (!who) {
+		const maxW = Math.max.apply(null, wrows.map((r) => Math.abs(r.net)).concat([1]));
+		$('liqWalletsSub').textContent = num(wrows.length) + ' wallets · tap a name to follow one';
+		table($('liqWallets'), 'liqWallets', [
+			{ k: 'name', label: 'Wallet', fmt: (r) => walletCell(r.a) + '<small class="muted" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px">' + esc(r.top.join(', ')) + '</small>' },
+			{ k: 'add', label: 'Added', n: 1, fmt: (r) => (r.add ? usd(r.add) : '–') },
+			{ k: 'rem', label: 'Removed', n: 1, opt: 1, fmt: (r) => (r.rem ? usd(r.rem) : '–') },
+			{ k: 'net', label: 'Net', n: 1, fmt: (r) => '<span style="white-space:nowrap">' + (r.net >= 0 ? '+' : '−') + usd(Math.abs(r.net)) + '</span>' + netBar(r.net, maxW) },
+			{ k: 'n', label: 'Adds / removes', n: 1, opt: 1, fmt: (r) => num(r.na) + ' / ' + num(r.nr) },
+			{ k: 'pools', label: 'Pools', n: 1, opt: 1, fmt: (r) => num(r.pools) },
+			{ k: 'last', label: 'Last', n: 1, opt: 1, fmt: (r) => ago(r.last) + ' ago' }
+		], wrows, S.liqWalletsAll ? 0 : 15);
+		moreBtn($('liqWalletsMore'), wrows.length, 15, S.liqWalletsAll, 'wallets', () => { S.liqWalletsAll = !S.liqWalletsAll; renderLiq(); });
+	}
+
 	// Events
-	const from = liqFrom(w);
-	const ev = L.events.filter((e) => e[0] >= from && liqOn(e[7])).map((e) => {
+	const ev = evAll.map((e) => {
 		const m = L.pools[e[2]] || ['Pool ' + e[2], '?', '?'];
-		const a = actorOf(e[3]);
-		return { t: e[0], add: e[1] > 0, pool: e[2], name: m[0], type: e[7], who: e[3], whoName: a.line === 'wallets' || a.line === 'bots' ? short(e[3]) : a.name, amt: liqAmounts(e, m), usd: e[6] ?? 0, tx: e[8] };
+		return { t: e[0], add: e[1] > 0, pool: e[2], name: m[0], type: e[7], who: e[3], whoName: walletName(e[3]), amt: liqAmounts(e, m), usd: e[6] ?? 0, tx: e[8] };
 	});
-	$('liqEvSub').textContent = num(ev.length) + ' in this window' + (L.events.length >= 250 && L.events[L.events.length - 1][0] > from ? ' (latest 250 kept on the page)' : '');
+	const oldest = L.events.length ? L.events[L.events.length - 1][0] : 0;
+	$('liqEvSub').textContent = num(ev.length) + (who ? ' by this wallet' : ' in this window') + (oldest > from ? ' · the page keeps the latest ' + num(L.events.length) + ' events, back to ' + dayLabel(oldest) : '');
 	const n = table($('liqEvents'), 'liqEvents', [
-		{ k: 't', label: 'When', fmt: (r) => '<span class="tab-nums" style="white-space:nowrap">' + dayLabel(r.t) + ' · ' + hhmm(r.t) + '</span><small class="phone-only">' + esc(r.name) + '</small>' },
+		{ k: 't', label: 'When', fmt: (r) => '<span class="tab-nums" style="white-space:nowrap">' + dayLabel(r.t) + ' · ' + hhmm(r.t) + '</span>' + (Date.now() / 1000 - r.t < 900 ? ' <span class="tag flag-none">new</span>' : '') + '<small class="phone-only">' + esc(r.name) + '</small>' },
 		{ k: 'add', label: '', sortable: false, fmt: (r) => '<span class="tag' + (r.add ? '' : ' flag-route') + '">' + (r.add ? 'Add' : 'Remove') + '</span>' },
 		{ k: 'name', label: 'Pool', opt: 1, fmt: (r) => '<b>' + esc(r.name) + '</b> <span class="muted">' + esc(LQ_TYPE[r.type] || '') + '</span>' },
-		{ k: 'whoName', label: 'Wallet', opt: 1, fmt: (r) => '<a href="https://allo.info/account/' + r.who + '" target="_blank" rel="noopener" title="' + r.who + '">' + esc(r.whoName) + '</a>' },
+		{ k: 'whoName', label: 'Wallet', fmt: (r) => walletCell(r.who) },
 		{ k: 'amt', label: 'Amounts', sortable: false, opt: 1, fmt: (r) => '<a href="https://allo.info/tx/' + r.tx + '" target="_blank" rel="noopener" style="white-space:nowrap">' + esc(r.amt) + '</a>' },
 		{ k: 'usd', label: 'Value', n: 1, fmt: (r) => (r.add ? '+' : '−') + usd(r.usd) }
 	], ev, S.liqAll ? 0 : 40);
 	moreBtn($('liqMore'), n, 40, S.liqAll, 'events', () => { S.liqAll = !S.liqAll; renderLiq(); });
+
+	// Fill in NFD names, then redraw once they arrive.
+	const seen = new Set(ev.slice(0, S.liqAll ? ev.length : 40).map((r) => r.who));
+	wrows.slice(0, S.liqWalletsAll ? wrows.length : 15).forEach((r) => seen.add(r.a));
+	if (who) seen.add(who);
+	Names.want(Array.from(seen), () => { if (S.tab === 'liq') renderLiq(); });
 }
 /** Column hanging down from a baseline at y: square at the baseline, 4px rounded at the data end. */
 function colDown(x, y, w, h, r) {
@@ -2021,9 +2130,15 @@ function netBar(v, max) {
 }
 function renderLiqChart(L) {
 	const box = $('liqChart'), W = box.clientWidth || 360, H = 220, m = { l: 52, r: 4, t: 8, b: 22 };
+	const who = S.liqWallet;
 	const days = (S.win.liq === '30d' ? L.daily : L.daily.slice(-7)).map((d) => {
 		let add = 0, rem = 0;
-		for (const [t, i] of [['cl', 1], ['w', 3], ['cp', 5]]) if (liqOn(t)) { add += d[i]; rem += d[i + 1]; }
+		if (who) {
+			// One wallet: from its events (the page keeps the latest few hundred).
+			for (const e of L.events) if (e[3] === who && liqOn(e[7]) && e[0] >= d[0] && e[0] < d[0] + 86400) { if (e[1] > 0) add += e[6] || 0; else rem += e[6] || 0; }
+		} else {
+			for (const [t, i] of [['cl', 1], ['w', 3], ['cp', 5]]) if (liqOn(t)) { add += d[i]; rem += d[i + 1]; }
+		}
 		return [d[0], add, rem];
 	});
 	const top = niceMax(Math.max.apply(null, days.map((d) => Math.max(d[1], d[2])).concat([1])) * 1.05);
@@ -2062,6 +2177,202 @@ function renderOvLiq() {
 		'<div class="fact"><div class="l">Net</div><div class="v">' + (net >= 0 ? '+' : '−') + usd(Math.abs(net)) + '</div></div>' + fact('Events', num(n), '') + '</div>' +
 		(rows.length ? '<div class="legend" style="margin-top:12px">' + rows.slice(0, 4).map((r) => { const nt = r[1] - r[2]; return '<span class="k"><b>' + esc((L.pools[r[0]] || ['Pool'])[0]) + '</b> ' + (nt >= 0 ? '+' : '−') + usd(Math.abs(nt)) + '</span>'; }).join('') + '</div>' : '<p class="note" style="margin:10px 0 0">No adds or removes in the last 24 hours.</p>');
 }
+
+/** SHA-512/256, for Algorand address checksums (browsers don't ship it). BigInt; fine for a few hashes. */
+const SHA = (() => {
+	const M = (1n << 64n) - 1n;
+	const K = '428a2f98d728ae227137449123ef65cdb5c0fbcfec4d3b2fe9b5dba58189dbbc3956c25bf348b53859f111f1b605d019923f82a4af194f9bab1c5ed5da6d8118d807aa98a303024212835b0145706fbe243185be4ee4b28c550c7dc3d5ffb4e272be5d74f27b896f80deb1fe3b1696b19bdc06a725c71235c19bf174cf692694e49b69c19ef14ad2efbe4786384f25e30fc19dc68b8cd5b5240ca1cc77ac9c652de92c6f592b02754a7484aa6ea6e4835cb0a9dcbd41fbd476f988da831153b5983e5152ee66dfaba831c66d2db43210b00327c898fb213fbf597fc7beef0ee4c6e00bf33da88fc2d5a79147930aa72506ca6351e003826f142929670a0e6e7027b70a8546d22ffc2e1b21385c26c9264d2c6dfc5ac42aed53380d139d95b3df650a73548baf63de766a0abb3c77b2a881c2c92e47edaee692722c851482353ba2bfe8a14cf10364a81a664bbc423001c24b8b70d0f89791c76c51a30654be30d192e819d6ef5218d69906245565a910f40e35855771202a106aa07032bbd1b819a4c116b8d2d0c81e376c085141ab532748774cdf8eeb9934b0bcb5e19b48a8391c0cb3c5c95a634ed8aa4ae3418acb5b9cca4f7763e373682e6ff3d6b2b8a3748f82ee5defb2fc78a5636f43172f6084c87814a1f0ab728cc702081a6439ec90befffa23631e28a4506cebde82bde9bef9a3f7b2c67915c67178f2e372532bca273eceea26619cd186b8c721c0c207eada7dd6cde0eb1ef57d4f7fee6ed17806f067aa72176fba0a637dc5a2c898a6113f9804bef90dae1b710b35131c471b28db77f523047d8432caab7b40c724933c9ebe0a15c9bebc431d67c49c100d4c4cc5d4becb3e42b6597f299cfc657e2a5fcb6fab3ad6faec6c44198c4a475817'.match(/.{16}/g).map((h) => BigInt('0x' + h));
+	const IV = '22312194fc2bf72c9f555fa3c84c64c22393b86b6f53b151963877195940eabd96283ee2a88effe3be5e1e25538639922b0199fc2c85b8aa0eb72ddc81c52ca2'.match(/.{16}/g).map((h) => BigInt('0x' + h));
+	const rotr = (x, n) => ((x >> n) | (x << (64n - n))) & M;
+	return function sha512_256(bytes) {
+		const len = bytes.length, total = Math.ceil((len + 17) / 128) * 128;
+		const m = new Uint8Array(total);
+		m.set(bytes);
+		m[len] = 0x80;
+		const bits = BigInt(len) * 8n;
+		for (let i = 0; i < 8; i++) m[total - 1 - i] = Number((bits >> BigInt(8 * i)) & 255n);
+		const H = IV.slice(), W = new Array(80);
+		for (let o = 0; o < total; o += 128) {
+			for (let t = 0; t < 16; t++) { let v = 0n; for (let k = 0; k < 8; k++) v = (v << 8n) | BigInt(m[o + t * 8 + k]); W[t] = v; }
+			for (let t = 16; t < 80; t++) {
+				const s0 = rotr(W[t - 15], 1n) ^ rotr(W[t - 15], 8n) ^ (W[t - 15] >> 7n);
+				const s1 = rotr(W[t - 2], 19n) ^ rotr(W[t - 2], 61n) ^ (W[t - 2] >> 6n);
+				W[t] = (W[t - 16] + s0 + W[t - 7] + s1) & M;
+			}
+			let [a, b, c, d, e, f, g, h] = H;
+			for (let t = 0; t < 80; t++) {
+				const S1 = rotr(e, 14n) ^ rotr(e, 18n) ^ rotr(e, 41n), ch = (e & f) ^ (~e & M & g);
+				const t1 = (h + S1 + ch + K[t] + W[t]) & M;
+				const S0 = rotr(a, 28n) ^ rotr(a, 34n) ^ rotr(a, 39n), mj = (a & b) ^ (a & c) ^ (b & c);
+				const t2 = (S0 + mj) & M;
+				h = g; g = f; f = e; e = (d + t1) & M; d = c; c = b; b = a; a = (t1 + t2) & M;
+			}
+			[a, b, c, d, e, f, g, h].forEach((v, i) => (H[i] = (H[i] + v) & M));
+		}
+		const out = new Uint8Array(32);
+		for (let i = 0; i < 4; i++) for (let k = 0; k < 8; k++) out[i * 8 + k] = Number((H[i] >> BigInt(56 - 8 * k)) & 255n);
+		return out;
+	};
+})();
+/** 32-byte public key → Algorand address (base32 of key + last 4 bytes of its SHA-512/256). */
+function algoAddress(pk) {
+	const all = new Uint8Array(36);
+	all.set(pk);
+	all.set(SHA(pk).subarray(28), 32);
+	const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+	let bits = 0, value = 0, out = '';
+	for (const byte of all) {
+		value = (value << 8) | byte;
+		bits += 8;
+		while (bits >= 5) { out += A[(value >>> (bits - 5)) & 31]; bits -= 5; }
+	}
+	if (bits > 0) out += A[(value << (5 - bits)) & 31];
+	return out;
+}
+const LQ_SEL = {"a205a9a4":"cl+","12d547c7":"cl-","4dce6bc5":"w+","4ece8dfc":"w-"};
+
+// ─── live liquidity: new Vault events straight from the indexer, between collector runs ───
+const VAULT_APP = 3656084807;
+const LIQ_POLL_MS = 15000;
+const LiveLiq = (() => {
+	let round = 0, busy = false, lastOk = 0, started = false;
+	const live = []; // events this page found itself, re-applied if a reloaded market.json predates them
+	const key = (e) => e[8] + '|' + e[2] + '|' + e[1] + '|' + e[3]; // txn, pool, direction, wallet (amounts are rounded differently)
+	const u64 = (b, at) => Number(new DataView(b.buffer, b.byteOffset + at, 8).getBigUint64(0));
+	const hex4 = (b) => Array.from(b.subarray(0, 4), (x) => x.toString(16).padStart(2, '0')).join('');
+	const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+	const tvlAsked = {};
+
+	async function poolAssets(L, id) {
+		if (L.pa && L.pa[id]) return L.pa[id];
+		const app = await getJSON(ALGOD + '/v2/applications/' + id);
+		const g = {};
+		for (const kv of (app.params && app.params['global-state']) || []) if (kv.value.type === 2) g[atob(kv.key)] = kv.value.uint;
+		const v = 'tick_spacing' in g ? [g.a || 0, g.b || 0, 'cl'] : [g.asset_a || 0, g.asset_b || 0, 'w'];
+		(L.pa || (L.pa = {}))[id] = v;
+		return v;
+	}
+	async function asset(L, id) {
+		const A = L.assets || (L.assets = {});
+		const a = A[id] || (A[id] = [null, id === 0 ? 6 : null, id === 0 ? 'ALGO' : null]);
+		if (a[1] == null || a[2] == null) {
+			try {
+				const j = await getJSON(ALGOD + '/v2/assets/' + id);
+				a[1] = j.params.decimals;
+				a[2] = j.params['unit-name'] || String(id);
+			} catch (e) {}
+		}
+		return a;
+	}
+	/** Decode one log into an event row (same shape as the collector's), or null. */
+	async function decode(L, root, call, log) {
+		const b = b64(log);
+		const kind = LQ_SEL[hex4(b)];
+		if (!kind) return null;
+		const pool = String(call['application-id']);
+		const [ia, ib, t] = await poolAssets(L, pool);
+		let amtA, amtB, ticks = null;
+		if (kind === 'cl+') { amtA = u64(b, 62); amtB = u64(b, 70); ticks = [u64(b, 36), u64(b, 44)]; }
+		else if (kind === 'cl-') { amtA = u64(b, 52); amtB = u64(b, 60); ticks = [u64(b, 36), u64(b, 44)]; }
+		else if (kind === 'w+') { amtA = u64(b, 36); amtB = u64(b, 44); }
+		else { amtA = u64(b, 44); amtB = u64(b, 52); }
+		const [A, B] = [await asset(L, ia), await asset(L, ib)];
+		const ha = amtA / Math.pow(10, A[1] ?? 6), hb = amtB / Math.pow(10, B[1] ?? 6);
+		const usdv = A[0] == null && B[0] == null ? null : Math.round(((A[0] || 0) * ha + (B[0] || 0) * hb) * 100) / 100;
+		const type = kind.startsWith('cl') ? 'cl' : 'w';
+		if (type === 'w' && !(usdv >= (L.big || 1000))) return null;
+		if (!L.pools[pool]) L.pools[pool] = [pairOf(A[2] || '?', B[2] || '?'), A[2] || '?', B[2] || '?', type, null, null];
+		return [root['round-time'], kind.endsWith('+') ? 1 : -1, pool, algoAddress(b.subarray(4, 36)), ha, hb, usdv, type, root.id, ticks];
+	}
+	/** Fold a new event into the page's copy of the rollups. */
+	function apply(L, e) {
+		L.events.unshift(e);
+		L.events.sort((x, y) => y[0] - x[0]);
+		const v = e[6] || 0, add = e[1] > 0;
+		for (const w of ['24h', '7d', '30d']) {
+			if (e[0] < liqFrom(w)) continue;
+			const rows = L.windows[w] || (L.windows[w] = []);
+			let r = rows.find((x) => x[0] === e[2]);
+			if (!r) rows.push((r = [e[2], 0, 0, 0, 0, 1, e[7]]));
+			r[add ? 1 : 2] += v;
+			r[add ? 3 : 4] += 1;
+			const ws = (L.wallets || (L.wallets = {}))[w] || (L.wallets[w] = []);
+			let q = ws.find((x) => x[0] === e[3]);
+			if (!q) ws.push((q = [e[3], 0, 0, 0, 0, 1, e[0], [e[2]], {}]));
+			q[add ? 1 : 2] += v;
+			q[add ? 3 : 4] += 1;
+			q[6] = Math.max(q[6], e[0]);
+			if (!q[7].includes(e[2])) q[7].push(e[2]);
+			const tt = q[8][e[7]] || (q[8][e[7]] = [0, 0, 0, 0]);
+			tt[add ? 0 : 1] += v;
+			tt[add ? 2 : 3] += 1;
+		}
+		const d0 = dayStartS(e[0]), days = L.daily || [];
+		let d = days.find((x) => x[0] === d0);
+		if (!d && d0 > (days.length ? days[days.length - 1][0] : 0)) { days.push((d = [d0, 0, 0, 0, 0, 0, 0])); if (days.length > 30) days.shift(); }
+		if (d) { const i = { cl: 1, w: 3, cp: 5 }[e[7]] + (add ? 0 : 1); d[i] += v; }
+	}
+	/** A pool just moved: fetch its TVL now instead of waiting for the hourly snapshot. */
+	function refreshTvl(L, pool) {
+		if (tvlAsked[pool] && Date.now() - tvlAsked[pool] < 60000) return;
+		tvlAsked[pool] = Date.now();
+		getJSON(API + '/pools/' + pool + '?chain=' + CHAIN, {}).then((j) => {
+			const p = j.data;
+			if (p && L.pools[pool]) { L.pools[pool][5] = p.tvlUsd; if (S.tab === 'liq') renderLiq(); }
+		}).catch(() => {});
+	}
+	async function poll() {
+		const L = S.market && S.market.liquidity;
+		if (busy || document.hidden || !L || !round) return;
+		busy = true;
+		try {
+			const found = [];
+			let next = null, pages = 0, last = round;
+			do {
+				const j = await getJSON(IDX + '/v2/transactions?application-id=' + VAULT_APP + '&min-round=' + (round + 1) + '&limit=1000' + (next ? '&next=' + encodeURIComponent(next) : ''));
+				pages++;
+				for (const root of j.transactions || []) {
+					last = Math.max(last, root['confirmed-round']);
+					const walk = async (t) => {
+						const call = t['application-transaction'];
+						if (call) for (const log of t.logs || []) { const e = await decode(L, root, call, log); if (e) found.push(e); }
+						for (const inner of t['inner-txns'] || []) await walk(inner);
+					};
+					await walk(root);
+				}
+				next = (j.transactions || []).length ? j['next-token'] : null;
+			} while (next && pages < 8);
+			round = next ? last - 1 : last;
+			lastOk = Date.now();
+			const have = new Set(L.events.map(key));
+			const fresh = found.filter((e) => !have.has(key(e)));
+			for (const e of fresh) { apply(L, e); live.push(e); refreshTvl(L, e[2]); }
+			if (fresh.length) {
+				if (S.tab === 'liq') renderLiq();
+				if (S.tab === 'overview') renderOvLiq();
+			}
+		} catch (e) {
+		} finally {
+			busy = false;
+		}
+	}
+	/** A fresh market.json arrived: continue from the later round, keep events it doesn't have yet. */
+	function rebase() {
+		const L = S.market && S.market.liquidity;
+		if (!L) return;
+		round = Math.max(round, L.round || 0);
+		const have = new Set(L.events.map(key));
+		for (const e of live) if (!have.has(key(e)) && e[0] > (L.events.length ? L.events[0][0] - 3600 : 0)) apply(L, e);
+		live.splice(0, live.length, ...live.filter((e) => e[0] > Date.now() / 1000 - 86400));
+		if (!started) {
+			started = true;
+			setInterval(poll, LIQ_POLL_MS);
+			document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
+		}
+		poll();
+	}
+	return { rebase, poll, status: () => (lastOk ? 'live, checked ' + ago(lastOk / 1000) + ' ago' : 'connecting') };
+})();
 
 // ─── tabs & controls ───
 function renderOverview() {
@@ -2127,6 +2438,11 @@ function bindControls() {
 	ts.onclick = (e) => { const b = e.target.closest('[data-t]'); if (!b) return; S.poolType = b.dataset.t; syncT(); saveUi(); renderPools(); };
 	syncT();
 	$('poolSearch').oninput = (e) => { S.poolQuery = e.target.value; renderPools(); };
+	$('v-liq').addEventListener('click', (e) => {
+		const b = e.target.closest('[data-wallet]');
+		if (b) { S.liqWallet = b.dataset.wallet; S.liqAll = false; renderLiq(); scrollTo(0, 0); return; }
+		if (e.target.closest('#liqWhoClear')) { S.liqWallet = null; renderLiq(); }
+	});
 	const lt = $('liqType');
 	const syncL = () => lt.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.t === S.liqType ? 'true' : 'false'));
 	lt.onclick = (e) => { const b = e.target.closest('[data-t]'); if (!b) return; S.liqType = b.dataset.t; syncL(); saveUi(); renderLiq(); };
@@ -2170,6 +2486,7 @@ async function loadMarket() {
 		if (m && m.windows) {
 			S.market = m;
 			if (m.lines) LINES = m.lines;
+			LiveLiq.rebase();
 			renderTab();
 		}
 	} catch (e) {
