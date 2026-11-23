@@ -344,6 +344,14 @@
 	.fact .d { font-size: 12px; color: var(--muted); }
 	.fact .d.up { color: var(--up); }
 	.fact .d.down { color: var(--down); }
+	.pace-ctl { display: flex; flex-wrap: wrap; gap: 8px; }
+	.pace-read { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 14px; margin: -4px 0 10px; }
+	#paceRead { font-size: 13px; color: var(--ink2); }
+	#paceRead b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+	#paceRead .up { color: var(--up); font-weight: 700; }
+	#paceRead .down { color: var(--down); font-weight: 700; }
+	.pace-note { margin: 8px 0 0; }
+	.pace-note:empty { display: none; }
 
 	.trunk .bt { font: 700 10.5px var(--sans); }
 	.trunk .seg-r { transition: opacity 0.15s; }
@@ -441,8 +449,15 @@
 					<div id="ovLiq"></div>
 				</div>
 				<div class="panel">
-					<div class="ph"><h2 id="paceTitle">Pace vs last month</h2><div class="legend" id="paceLegend"></div></div>
+					<div class="ph"><h2 id="paceTitle">Pace vs last month</h2>
+						<div class="pace-ctl">
+							<div class="seg" id="paceMetric" role="group" aria-label="Measure"><button data-v="fees">Fees</button><button data-v="vol">Volume</button></div>
+							<div class="seg" id="paceUnit" role="group" aria-label="Unit"><button data-v="usd">USD</button><button data-v="algo">ALGO</button></div>
+						</div>
+					</div>
+					<div class="pace-read"><div id="paceRead"></div><div class="legend" id="paceLegend"></div></div>
 					<div class="chart" id="paceChart"></div>
+					<p class="note pace-note" id="paceNote"></p>
 				</div>
 				<div class="panel">
 					<div class="ph"><h2>Monthly fees</h2><span class="sub" id="histSub"></span></div>
@@ -661,6 +676,7 @@ const S = {
 	lastOk: 0,
 	tab: 'overview',
 	win: { flow: '24h', pools: '24h', tokens: '24h', liq: '7d' },
+	pace: { m: 'fees', u: 'usd' }, // pace chart: fees or volume (vol), in USD or ALGO
 	liqType: 'all',
 	liqAll: false,
 	liqPoolsAll: false,
@@ -985,20 +1001,26 @@ function renderGain() {
 	if (!b || !(S.total - b.total > 0.005)) return void (el.textContent = '');
 	el.innerHTML = '<b>+' + usd(S.total - b.total, 2) + '</b> since you last checked, ' + ago(b.at / 1000) + ' ago';
 }
-/** This month's cumulative fees as [secondsSinceMonthStart, total] points. */
-function thisMonthCum() {
+/**
+ * This month's cumulative fees (or volume, with `vol`) as [secondsSinceMonthStart, total] points.
+ * With `algo`, each bucket is converted at the ALGO price of its own hour (or day).
+ */
+function thisMonthCum(vol, algo) {
 	const g = S.feed.genesis, hf = S.feed.hourlyFrom || 0, now = Date.now() / 1000;
+	const firstHour = Math.ceil(hf / 3600) * 3600; // daily rows stop where the hourly ones start
 	const rows = Array.from(S.hours.entries()).filter(([t]) => t >= g).sort((a, b) => a[0] - b[0]);
 	const pts = [[0, 0]];
 	let c = 0;
 	for (const [t, b] of rows) {
-		c += b[0];
-		pts.push([Math.min(t + (t < hf ? 86400 : 3600), now) - g, c]);
+		const end = t < hf ? Math.min(t + 86400, firstHour) : t + 3600;
+		const v = vol ? b[3] || 0 : b[0];
+		c += algo ? v / PxHist.at(t, end - t) : v;
+		pts.push([Math.min(end, now) - g, c]);
 	}
 	return pts;
 }
-/** Last month's cumulative fees by elapsed seconds, from the feed's daily rows. */
-function lastMonthCum() {
+/** Last month's cumulative fees (or volume) by elapsed seconds, from the feed's daily rows. */
+function lastMonthCum(vol, algo) {
 	const days = S.feed.days;
 	if (!days || !S.feed.monthEnd) return null;
 	const start = monthStart(S.feed.genesis - 1);
@@ -1008,7 +1030,8 @@ function lastMonthCum() {
 	const pts = [[first - start, 0]];
 	let c = 0;
 	for (const r of rows) {
-		c += r[1];
+		const v = vol ? r[4] || 0 : r[1];
+		c += algo ? v / PxHist.at(r[0], 86400) : v;
 		pts.push([r[0] + 86400 - start, c]);
 	}
 	pts.start = first;
@@ -1025,16 +1048,26 @@ function cumAt(pts, x) {
 	}
 	return pts[pts.length - 1][1];
 }
+const axisNum = (v) => (v >= 1e6 ? num(v / 1e6, v % 1e6 ? 1 : 0) + 'M' : v >= 1e4 ? num(v / 1e3, 0) + 'K' : num(v, v < 10 && v % 1 ? 1 : 0));
+const signPct = (d) => (d >= 0 ? '+' : '−') + pct(Math.abs(d), 0);
 function renderPace() {
 	const box = $('paceChart'), W = box.clientWidth || 360, H = 220;
 	const m = { l: 52, r: 14, t: 10, b: 24 };
-	const cur = thisMonthCum(), prev = lastMonthCum();
+	const vol = S.pace.m === 'vol', algo = S.pace.u === 'algo';
+	if (algo) PxHist.ensure();
+	if (algo && !PxHist.ready()) {
+		$('paceRead').textContent = $('paceLegend').textContent = $('paceNote').textContent = '';
+		box.innerHTML = '<div class="empty" style="height:' + H + 'px">' + (PxHist.failed() ? 'Couldn’t load ALGO price history. Trying again in a minute.' : 'Loading ALGO prices…') + '</div>';
+		return;
+	}
+	const cur = thisMonthCum(vol, algo), prev = lastMonthCum(vol, algo);
+	const fmtV = algo ? (v) => (v >= 1e6 ? num(v / 1e6, 2) + 'M' : num(v, 0)) + ' ALGO' : vol ? (v) => usd(v) : (v) => usd(v, 2);
 	const len = S.feed.monthEnd ? S.feed.monthEnd - S.feed.genesis : Math.max(86400, Date.now() / 1000 - S.feed.genesis);
 	const xMax = Math.max(len, prev ? prev.len : 0);
 	const yMax = niceMax(Math.max(cur[cur.length - 1][1], prev ? prev[prev.length - 1][1] : 0) * 1.06);
 	const X = (s) => m.l + (s / xMax) * (W - m.l - m.r), Y = (v) => m.t + (1 - v / yMax) * (H - m.t - m.b);
 	const path = (pts) => pts.map((p, i) => (i ? 'L' : 'M') + f1(X(p[0])) + ' ' + f1(Y(p[1]))).join('');
-	let g = yGrid(m, W, Y, yMax, 4, axisUsd);
+	let g = yGrid(m, W, Y, yMax, 4, algo ? axisNum : axisUsd);
 	const days = Math.round(xMax / 86400);
 	for (let d = 0; d <= days; d += days > 20 ? 5 : 2) {
 		const x = X(d * 86400);
@@ -1049,8 +1082,23 @@ function renderPace() {
 	g += '<circle cx="' + f1(X(e[0])) + '" cy="' + f1(Y(e[1])) + '" r="4" fill="var(--ink)" stroke="var(--panel)" stroke-width="2"/>';
 	g += '<line class="xhair" id="paceX" y1="' + m.t + '" y2="' + (H - m.b) + '" x1="0" x2="0" opacity="0"/>';
 	box.innerHTML = svgOpen(W, H) + g + '</svg>';
-	$('paceTitle').textContent = prev ? 'Pace vs ' + monthName(prev.start) : 'Fees this month';
+	$('paceTitle').textContent = prev ? 'Pace vs ' + monthName(prev.start) : (vol ? 'Volume' : 'Fees') + ' this month';
 	$('paceLegend').innerHTML = '<span class="k" style="--c:var(--ink)"><i class="lk"></i>' + esc(curName) + '</span>' + (prev ? '<span class="k" style="--c:var(--cmp)"><i class="lk"></i>' + esc(monthName(prev.start)) + '</span>' : '');
+	// Where this month stands against last month at the same point.
+	const prevAt = prev && e[0] >= prev[0][0] ? cumAt(prev, e[0]) : 0;
+	const chg = prevAt > 0 ? e[1] / prevAt - 1 : null;
+	$('paceRead').innerHTML = '<b>' + fmtV(e[1]) + '</b> ' + (vol ? 'traded' : 'in fees') + ' so far' +
+		(chg != null ? ', <span class="' + (chg >= 0 ? 'up' : 'down') + '">' + signPct(chg) + '</span> vs ' + esc(monthName(prev.start)) + ' by this point' : '');
+	// In ALGO, say what the price did, so the gap between the two views is explained.
+	let note = '';
+	if (algo) {
+		note = 'Each hour converted at its own ALGO price (' + PxHist.source() + ').';
+		const cu = thisMonthCum(vol, false), pu = prev && lastMonthCum(vol, false);
+		const nowU = cu[cu.length - 1][1], prevU = pu && e[0] >= pu[0][0] ? cumAt(pu, e[0]) : 0;
+		if (e[1] > 0 && prevU > 0 && prevAt > 0)
+			note += ' ALGO averaged $' + (nowU / e[1]).toFixed(4) + ' this month vs $' + (prevU / prevAt).toFixed(4) + ' at this point in ' + monthName(prev.start) + '; in USD this month is ' + signPct(nowU / prevU - 1) + '.';
+	}
+	$('paceNote').textContent = note;
 	hover(box, (x) => {
 		const s = Math.max(0, Math.min(xMax, ((x - m.l) / (W - m.l - m.r)) * xMax));
 		const day = Math.floor(s / 86400) + 1;
@@ -1059,8 +1107,10 @@ function renderPace() {
 		xh.setAttribute('x2', f1(X(s)));
 		xh.setAttribute('opacity', '1');
 		const rows = [];
-		if (s <= e[0]) rows.push({ c: 'var(--ink)', k: curName, v: usd(cumAt(cur, s), 2) });
-		if (prev && s >= prev[0][0]) rows.push({ c: 'var(--cmp)', k: monthName(prev.start), v: usd(cumAt(prev, s), 2) });
+		const a = s <= e[0] ? cumAt(cur, s) : null, b = prev && s >= prev[0][0] ? cumAt(prev, s) : null;
+		if (a != null) rows.push({ c: 'var(--ink)', k: curName, v: fmtV(a) });
+		if (b != null) rows.push({ c: 'var(--cmp)', k: monthName(prev.start), v: fmtV(b) });
+		if (a != null && b > 0) rows.push({ k: 'Difference', v: signPct(a / b - 1) });
 		return rows.length ? tipRows('Day ' + day + ', ' + hhmmOf(s), rows) : null;
 	}, () => { const xh = box.querySelector('#paceX'); if (xh) xh.setAttribute('opacity', '0'); });
 }
@@ -1395,6 +1445,67 @@ const AlgoPrice = (() => {
 		pause() { st.paused = true; const ws = st.ws; st.ws = null; if (ws) try { ws.close(); } catch (e) {} },
 		resume() { st.paused = false; connect(); }
 	};
+})();
+
+// ─── ALGO price history, hourly, for the pace chart's ALGO view (fetched only once that view is on) ───
+const PxHist = (() => {
+	const h = new Map(); // hour start (s) → [USD traded, ALGO traded] on the exchange, so any span's average is volume-weighted
+	let state = 'idle', src = '', lastTry = 0, busy = false;
+	const SOURCES = [
+		{ label: 'Binance ALGO/USDT', base: 'https://api.binance.com' },
+		{ label: 'Binance ALGO/USDT', base: 'https://data-api.binance.vision' },
+		{ label: 'Coinbase ALGO-USD', cb: true }
+	];
+	async function binance(base, start, got) {
+		for (let t = start; ; ) {
+			const k = await getJSON(base + '/api/v3/klines?symbol=ALGOUSDT&interval=1h&limit=1000&startTime=' + t * 1000, {});
+			for (const c of k) got.set(c[0] / 1000, +c[5] > 0 ? [+c[7], +c[5]] : [+c[4], 1]);
+			if (k.length < 1000) return;
+			t = k[k.length - 1][0] / 1000 + 3600;
+		}
+	}
+	async function coinbase(start, got) {
+		const now = Date.now() / 1000, iso = (s) => new Date(s * 1000).toISOString();
+		for (let t = start; t < now; t += 300 * 3600) {
+			const k = await getJSON('https://api.exchange.coinbase.com/products/ALGO-USD/candles?granularity=3600&start=' + iso(t) + '&end=' + iso(Math.min(now, t + 299 * 3600)), {});
+			for (const c of k) { const p = (c[1] + c[2] + c[4]) / 3; got.set(c[0], c[5] > 0 ? [p * c[5], c[5]] : [p, 1]); } // [time, low, high, open, close, volume]
+		}
+	}
+	/** Fetch from the start of last month (or, once loaded, from the newest hour held) to now. */
+	async function ensure() {
+		if (busy || !S.feed || Date.now() - lastTry < (state === 'ok' ? 600e3 : 60e3)) return;
+		busy = true;
+		lastTry = Date.now();
+		const start = state === 'ok' ? Math.max(...h.keys()) : monthStart(S.feed.genesis - 1);
+		if (state !== 'ok') state = 'loading';
+		let ok = false;
+		for (const s of SOURCES) {
+			const got = new Map();
+			try {
+				if (s.cb) await coinbase(start, got);
+				else await binance(s.base, start, got);
+				if (!got.size) continue;
+				for (const [k, v] of got) h.set(k, v);
+				src = s.label;
+				ok = true;
+				break;
+			} catch (e) {}
+		}
+		if (ok) state = 'ok';
+		else if (state !== 'ok') { state = 'failed'; setTimeout(ensure, 61e3); }
+		busy = false;
+		if (S.tab === 'overview' && S.pace.u === 'algo') renderPace();
+	}
+	/** Average ALGO price over [t, t + span), weighted by exchange volume. */
+	function at(t, span) {
+		let q = 0, b = 0;
+		for (let x = Math.floor(t / 3600) * 3600; x < t + span; x += 3600) { const v = h.get(x); if (v) { q += v[0]; b += v[1]; } }
+		if (b) return q / b;
+		// An hour the exchange data doesn't reach yet: the nearest earlier hour, else the live price.
+		for (let x = Math.floor(t / 3600) * 3600 - 3600, n = 0; n < 24; n++, x -= 3600) { const v = h.get(x); if (v) return v[0] / v[1]; }
+		return AlgoPrice.price() || S.feed.algoUsd || 1;
+	}
+	return { ensure, at, ready: () => state === 'ok', failed: () => state === 'failed', source: () => src };
 })();
 
 // ─── FLOW ───
@@ -2409,7 +2520,7 @@ function setTab(t, focus) {
 	renderTab();
 	tip.hide();
 }
-function saveUi() { store.set(UI_KEY, { tab: S.tab, win: S.win, poolType: S.poolType, liqType: S.liqType, theme: document.documentElement.dataset.theme || null }); }
+function saveUi() { store.set(UI_KEY, { tab: S.tab, win: S.win, pace: S.pace, poolType: S.poolType, liqType: S.liqType, theme: document.documentElement.dataset.theme || null }); }
 function bindControls() {
 	const tabs = Array.from(document.querySelectorAll('.tab'));
 	tabs.forEach((b, i) => {
@@ -2433,8 +2544,17 @@ function bindControls() {
 		};
 		sync();
 	});
+	const pm = $('paceMetric'), pu = $('paceUnit');
+	const syncP = () => {
+		pm.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.v === S.pace.m ? 'true' : 'false'));
+		pu.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.v === S.pace.u ? 'true' : 'false'));
+	};
+	const setP = (k) => (e) => { const b = e.target.closest('[data-v]'); if (!b) return; S.pace[k] = b.dataset.v; syncP(); saveUi(); renderPace(); };
+	pm.onclick = setP('m');
+	pu.onclick = setP('u');
+	syncP();
 	const ts = $('typeSeg');
-	const syncT = () => ts.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.t === S.poolType ? 'true' : 'false'));
+	const syncT =() => ts.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.t === S.poolType ? 'true' : 'false'));
 	ts.onclick = (e) => { const b = e.target.closest('[data-t]'); if (!b) return; S.poolType = b.dataset.t; syncT(); saveUi(); renderPools(); };
 	syncT();
 	$('poolSearch').oninput = (e) => { S.poolQuery = e.target.value; renderPools(); };
@@ -2532,6 +2652,7 @@ async function boot() {
 	const ui = store.get(UI_KEY) || {};
 	if (ui.theme) document.documentElement.dataset.theme = ui.theme;
 	if (ui.win) Object.assign(S.win, ui.win);
+	if (ui.pace) Object.assign(S.pace, ui.pace);
 	if (ui.poolType) S.poolType = ui.poolType;
 	if (ui.liqType) S.liqType = ui.liqType;
 	let p = JSON.parse($('payload').textContent);
