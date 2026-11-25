@@ -35,7 +35,7 @@ Counts protocol fees from on-chain fee splits per pool, so it is more accurate t
 
 ## Brand Commitments
 
-Pact's own palette (deep navy ground, Pact blue accent) is the reference; this is a personal tool, not a marketing surface. No game-like effects: no sounds, particles, odometers, banners or toasts (decided 2026-11-20). Motion only for data updates.
+Pact's own palette (deep navy ground, Pact blue accent) is the reference; this is a personal tool, not a marketing surface. Motion only for data updates. Sound and big-fee moments (tiered fee sounds, a yellow "Big fee" / "Whale fee" strip, confetti for $1+) came back on 2026-11-25 at Andrew's request, on by default behind one switch beside the theme button; the 2026-11-20 "no game effects" rule is replaced by that switch.
 
 ## Evidence on Hand
 

@@ -1777,7 +1777,7 @@
       "Don't use a line colour for anything that is not that actor; Pact's own totals are `ink` and comparisons are `cmp`.",
       "Don't put fixed white text on a fill that changes between modes.",
       "Don't add card shadows; the only shadows are the pressed segment and the tooltip.",
-      "Don't add sounds, particles, odometers, banners, toasts or idle animation; motion is for data that changed.",
+      "Don't add sounds, particles, banners or toasts outside the opt-out big-fee moments, and no idle animation; motion is for data that changed.",
       "Don't add a second display-size figure to a view.",
       "Don't introduce a second typeface."
     ]

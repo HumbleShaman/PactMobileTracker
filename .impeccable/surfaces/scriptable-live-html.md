@@ -7,7 +7,7 @@ related_targets: []
 
 # Live view (scriptable/live.html)
 
-Scope: the tracker's single page, on the iPhone (Scriptable WebView) and desktop (GitHub Pages). Mode: Operate. Five tabs: Overview, Flow, Pools, Tokens, vs Tinyman. No game effects (no sound, particles, odometer, toasts).
+Scope: the tracker's single page, on the iPhone (Scriptable WebView) and desktop (GitHub Pages). Mode: Operate. Five tabs: Overview, Flow, Pools, Tokens, vs Tinyman. Sound and big-fee moments are on by default behind one switch beside the theme button (see DESIGN.md, Sound & Big-Fee Moments); no odometer, toasts or idle animation.
 
 ## Direction contract
 

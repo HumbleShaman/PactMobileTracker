@@ -6,7 +6,7 @@ A personal Pact markets dashboard: an iPhone widget plus a live view (phone and 
 - **Lock screen widgets** (rectangular / inline / circular).
 - **Tap any widget** to open the live view. **On a computer** the same page is at https://humbleshaman.github.io/PactMobileTracker/ (GitHub Pages), laid out wide. It follows the system light/dark setting; the moon button switches it.
 
-The live view has five tabs. There are no sounds or animations; numbers update as swaps land.
+The live view has six tabs; numbers update as swaps land. Swaps ring as they arrive (bigger fee, bigger sound), and fees of $0.25+ and $1+ drop a "Big fee" / "Whale fee" strip from the header. The speaker button next to the theme switch turns sound and those moments off; browsers start the sound after your first tap on the page.
 
 | Tab | What it answers |
 |---|---|

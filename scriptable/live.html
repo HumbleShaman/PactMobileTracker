@@ -61,6 +61,9 @@
 		--tip-bg: #0b0b0b;
 		--tip-ink: #f6f6f3;
 		--tip-2: #b4b3ac;
+		/* announcement yellow: big-fee moments only (same in both modes; ink on it is near-black) */
+		--signal: #ffd400;
+		--on-signal: #0b0b0b;
 	}
 	@media (prefers-color-scheme: dark) {
 		:root:where(:not([data-theme='light'])) {
@@ -413,6 +416,46 @@
 		.dep .dd, .splitbar i { transition: none; }
 	}
 
+	/* ─── sound & big-fee moments: on by default, off from the speaker beside the theme switch ─── */
+	.theme { position: relative; }
+	.fxbtn .off, .fxbtn[aria-pressed='false'] .on { display: none; }
+	.fxbtn[aria-pressed='false'] .off { display: inline; }
+	.fxbtn .lock { display: none; position: absolute; top: 5px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--signal); box-shadow: 0 0 0 2px var(--band); }
+	.fxbtn.locked .lock { display: block; }
+	/* The announcement drops out from under the signage band, on every tab. */
+	.ann { position: absolute; left: 0; right: 0; top: 100%; overflow: hidden; pointer-events: none; }
+	.ann-in { position: relative; display: block; width: 100%; overflow: hidden; text-align: left; background: var(--signal); color: var(--on-signal); border-bottom: 1px solid rgba(0, 0, 0, 0.2); transform: translateY(-101%); transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+	.ann.on .ann-in { transform: none; pointer-events: auto; }
+	.ann-row { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 12px; min-height: 48px; padding-top: 7px; padding-bottom: 7px; }
+	.ann-k { flex: none; padding: 3px 7px; border-radius: 3px; background: var(--on-signal); color: var(--signal); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+	.ann-v { font-size: 23px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+	.ann-d { display: flex; align-items: center; gap: 7px; min-width: 0; flex: 1 1 auto; font-size: 13px; font-weight: 600; color: color-mix(in oklab, var(--on-signal) 82%, var(--signal)); }
+	.ann-d > span:last-child { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.ann-d .bul { box-shadow: 0 0 0 1.5px var(--on-signal); }
+	.ann-go { flex: none; margin-left: auto; font-size: 12.5px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+	.ann.whale .ann-row { min-height: 66px; }
+	.ann.whale .ann-v { font-size: 34px; }
+	.ann.whale .ann-in::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.6) 50%, transparent 65%); transform: translateX(-100%); }
+	.ann.whale.on .ann-in::after { animation: sweep 1.3s 0.4s cubic-bezier(0.16, 1, 0.3, 1) 2; }
+	@keyframes sweep { to { transform: translateX(100%); } }
+	.ann.block .ann-in { background: var(--band); color: var(--band-ink); border-bottom-color: var(--hair); }
+	.ann.block .ann-k { background: var(--signal); color: var(--on-signal); }
+	.ann.block .ann-d { color: var(--band-2); }
+	@media (max-width: 560px) {
+		.ann-d { flex-basis: 100%; }
+		.ann-go { display: none; }
+		.ann-v { font-size: 21px; }
+		.ann.whale .ann-v { font-size: 29px; }
+	}
+	#fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 40; }
+	.chip.hot { padding: 0 7px; border-radius: 4px; background: var(--signal); color: var(--on-signal); }
+	.dep .amt small.hot { display: inline-block; margin-top: 1px; padding: 0 6px; border-radius: 3px; background: var(--signal); color: var(--on-signal); font-weight: 700; }
+	@media (prefers-reduced-motion: reduce) {
+		.ann-in { transform: none; opacity: 0; transition: opacity 0.2s; }
+		.ann.on .ann-in { opacity: 1; }
+		.ann.whale.on .ann-in::after { animation: none; }
+	}
+
 	.rw-top { display: flex; align-items: baseline; gap: 6px 12px; flex-wrap: wrap; }
 	.rw-top .big { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
 	.rw-top .big small { font-size: 0.5em; color: var(--muted); font-weight: 600; }
@@ -450,6 +493,10 @@
 			<div class="brand"><b>Pact</b><span>Markets</span></div>
 			<div class="status" id="status"><span class="dot"></span><span class="lbl" id="statusLbl">Connecting</span></div>
 			<div class="px" id="pxBand" title="ALGO/USD, live from Binance (Coinbase as backup)">ALGO <b id="pxBandV">–</b><span class="chg" id="pxBandC"></span></div>
+			<button class="theme fxbtn" id="fxBtn" type="button" aria-pressed="true" aria-label="Sound and big-fee moments">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.4h3.3L12 5.6v12.8l-4.7-3.8H4z" /><g class="on"><path d="M15.6 9.2a4 4 0 0 1 0 5.6" /><path d="M18.3 6.6a7.6 7.6 0 0 1 0 10.8" /></g><g class="off"><path d="M16 9.5l5 5M21 9.5l-5 5" /></g></svg>
+				<i class="lock"></i>
+			</button>
 			<button class="theme" id="themeBtn" type="button" aria-label="Switch light or dark theme">
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>
 			</button>
@@ -463,7 +510,9 @@
 			<button class="tab" role="tab" id="t-gap" aria-controls="v-gap" data-tab="gap">vs Tinyman</button>
 		</nav>
 	</div>
+	<div class="ann" id="ann" aria-live="polite"><button class="ann-in" id="annIn" type="button" tabindex="-1"></button></div>
 </header>
+<canvas id="fx" aria-hidden="true"></canvas>
 
 <main class="wrap">
 	<!-- ─── Overview ─── -->
@@ -1300,6 +1349,16 @@ function renderHist() {
 			'<td class="n">' + (r[6] ? num(r[5], 0) + ' ALGO' : '–') + '</td></tr>').join('') + '</tbody>';
 }
 
+// Per-swap fee tiers, calibrated on Pact flow (Nov 2026: median fee $0.0017, p99 $0.21;
+// about 1.7 swaps an hour pay $0.25+ and 0.6 pay $1+). Index = tier.
+const TIER_MIN = [0, 0.001, 0.01, 0.05, 0.25, 1];
+const TIER = ['dust', 'tick', 'coin', 'nice', 'big', 'whale'];
+function tierOf(fee) {
+	let t = 0;
+	for (let i = 1; i < TIER_MIN.length; i++) if (fee >= TIER_MIN[i]) t = i;
+	return t;
+}
+
 // live swaps list
 const BIG_SWAP = 1000;
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1316,7 +1375,7 @@ function depRow(r, fresh) {
 	return '<li data-id="' + esc(r.id) + '" class="' + (fresh ? 'fresh ' : '') + (big ? 'big ' : '') + (open ? 'open' : '') + '" style="--lc:' + lineColor(a.line) + '" tabindex="0">' +
 		'<span class="tm">' + hhmm(r.ts / 1000) + '</span>' + bullet(a.line, a.name) +
 		'<span class="pr"><b>' + esc(r.a) + ' → ' + esc(r.b) + '</b><small>' + esc(a.name) + (meta ? ' · ' + esc(poolTier(r.pool)) + ' pool' : '') + '</small></span>' +
-		'<span class="amt"><b>' + usd(r.usd || 0) + '</b><small>fee ' + usd(r.fee) + '</small></span>' +
+		'<span class="amt"><b>' + usd(r.usd || 0) + '</b><small' + (tierOf(r.fee) >= 4 ? ' class="hot"' : '') + '>fee ' + usd(r.fee) + '</small></span>' +
 		'<div class="dd"><div><p>Fee <b>' + fx(r.fee) + '</b> · protocol ' + fx(r.proto || 0) + ' · LPs ' + fx(lp) + (r.usd ? ' · ' + pct(r.fee / r.usd, 2) + ' of the trade' : '') + '</p>' +
 		'<p>' + (/^\d+$/.test(round) ? '<a href="https://allo.info/block/' + round + '" target="_blank" rel="noopener">Block ' + num(+round, 0) + '</a>' : '') +
 		(r.s ? ' · sent by <a href="https://allo.info/account/' + esc(r.s) + '" target="_blank" rel="noopener">' + esc(short(r.s)) + '</a>' : '') +
@@ -1398,7 +1457,7 @@ function setFee(total) {
 		el.textContent = usd(total, 2);
 		return;
 	}
-	feeChip('+' + usd(gained, 2));
+	feeChip('+' + usd(gained, 2), Fx.takeHot());
 	el.classList.remove('tick');
 	void el.offsetWidth;
 	el.classList.add('tick');
@@ -1413,10 +1472,10 @@ function setFee(total) {
 	};
 	FeeFig.raf = requestAnimationFrame(step);
 }
-function feeChip(text) {
+function feeChip(text, hot) {
 	const box = $('feeChips');
 	const c = document.createElement('span');
-	c.className = 'chip';
+	c.className = 'chip' + (hot ? ' hot' : '');
 	c.textContent = text;
 	box.appendChild(c);
 	const still = reduced();
@@ -1437,6 +1496,373 @@ function tickFacts(box) {
 		if (was != null && was !== t && n(t) > n(was)) v.classList.add('tick');
 	});
 }
+
+// ─── sound: synthesized with Web Audio, nothing to download ───
+const Sound = (() => {
+	let ctx = null, master = null, verb = null, lastLow = 0;
+	function init() {
+		if (ctx) return ctx;
+		const AC = window.AudioContext || window.webkitAudioContext;
+		if (!AC) return null;
+		ctx = new AC();
+		const comp = ctx.createDynamicsCompressor();
+		comp.threshold.value = -16;
+		comp.ratio.value = 5;
+		master = ctx.createGain();
+		master.gain.value = 0.6;
+		master.connect(comp);
+		comp.connect(ctx.destination);
+		// A small airy room from decaying noise, so chimes ring instead of click.
+		verb = ctx.createConvolver();
+		const len = Math.floor(ctx.sampleRate * 1.8);
+		const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+		for (let ch = 0; ch < 2; ch++) {
+			const d = buf.getChannelData(ch);
+			for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.4);
+		}
+		verb.buffer = buf;
+		const wet = ctx.createGain();
+		wet.gain.value = 0.28;
+		verb.connect(wet);
+		wet.connect(master);
+		return ctx;
+	}
+	const ready = () => !!ctx && ctx.state === 'running';
+	/** Browsers only start audio from a tap or key press; resolves true once sound can play. */
+	function unlock() {
+		const c = init();
+		if (!c) return Promise.resolve(false);
+		if (c.state === 'running') return Promise.resolve(true);
+		return c.resume().then(() => { Fx.sync(); return ready(); }, () => false);
+	}
+	function tone(o) {
+		const at = ctx.currentTime + (o.t || 0);
+		const dur = o.dur || 0.3;
+		const osc = ctx.createOscillator();
+		osc.type = o.type || 'sine';
+		osc.frequency.setValueAtTime(o.f, at);
+		if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, at + dur);
+		if (o.detune) osc.detune.value = o.detune;
+		const g = ctx.createGain();
+		g.gain.setValueAtTime(0.0001, at);
+		g.gain.exponentialRampToValueAtTime(o.vol || 0.1, at + (o.attack || 0.004));
+		g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+		osc.connect(g);
+		g.connect(master);
+		if (o.wet !== 0) {
+			const s = ctx.createGain();
+			s.gain.value = o.wet == null ? 0.35 : o.wet;
+			g.connect(s);
+			s.connect(verb);
+		}
+		osc.start(at);
+		osc.stop(at + dur + 0.05);
+	}
+	// Bell: inharmonic partials decaying at different rates.
+	function bell(f, t, vol, dur) {
+		[[1, 1], [2.76, 0.45], [5.4, 0.22], [8.93, 0.1]].forEach(([m, a], i) => tone({ f: f * m, t, vol: vol * a, dur: dur / (1 + i * 0.6), wet: 0.5 }));
+	}
+	function noise(t, dur, vol, freq) {
+		const at = ctx.currentTime + t;
+		const len = Math.floor(ctx.sampleRate * dur);
+		const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+		const d = buf.getChannelData(0);
+		for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+		const src = ctx.createBufferSource();
+		src.buffer = buf;
+		const bp = ctx.createBiquadFilter();
+		bp.type = 'bandpass';
+		bp.frequency.value = freq;
+		bp.Q.value = 1.4;
+		const g = ctx.createGain();
+		g.gain.setValueAtTime(vol, at);
+		g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+		src.connect(bp);
+		bp.connect(g);
+		g.connect(master);
+		src.start(at);
+	}
+	const C6 = 1046.5;
+	const kinds = {
+		tick(p) { tone({ f: 2093 * p, dur: 0.07, type: 'triangle', vol: 0.05, wet: 0.12 }); },
+		coin(p) {
+			tone({ f: 988 * p, dur: 0.09, type: 'square', vol: 0.035, wet: 0.1 });
+			tone({ f: 1319 * p, t: 0.075, dur: 0.42, type: 'square', vol: 0.035, wet: 0.3 });
+			tone({ f: 1319 * p, t: 0.075, dur: 0.5, type: 'sine', vol: 0.08 });
+		},
+		nice(p) {
+			[1319, 1661, 1976, 2637].forEach((f, i) => tone({ f: f * p, t: i * 0.055, dur: 0.5, type: 'triangle', vol: 0.09 }));
+			tone({ f: 3951 * p, t: 0.22, dur: 0.6, vol: 0.03, wet: 0.7 });
+		},
+		// "ka-ching": a snap, a thump, a bell chord, then a sparkle.
+		big() {
+			noise(0, 0.06, 0.25, 3800);
+			tone({ f: 110, to: 55, dur: 0.3, vol: 0.25, wet: 0 });
+			[C6, C6 * 1.26, C6 * 1.5, C6 * 2].forEach((f, i) => bell(f, 0.06 + i * 0.012, 0.12, 1.5));
+			[2093, 2637, 3136, 4186].forEach((f, i) => tone({ f, t: 0.35 + i * 0.07, dur: 0.4, type: 'triangle', vol: 0.04, wet: 0.6 }));
+		},
+		// $1+: a sub drop, a run up, and a held chord that lasts longer the bigger the fee.
+		whale(p, scale) {
+			const s = Math.min(1.6, 1 + Math.log10(Math.max(1, scale)) * 0.4);
+			tone({ f: 70, to: 35, dur: 0.9, vol: 0.32, wet: 0 });
+			noise(0, 0.5, 0.08, 6000);
+			[523, 659, 784, 1047, 1319, 1568, 2093].forEach((f, i) => tone({ f, t: i * 0.06, dur: 0.35, type: 'triangle', vol: 0.09 }));
+			[523, 659, 784, 1047].forEach((f) => {
+				tone({ f, t: 0.42, dur: 2.2 * s, type: 'sawtooth', vol: 0.025, detune: 7, wet: 0.6 });
+				tone({ f, t: 0.42, dur: 2.2 * s, type: 'sawtooth', vol: 0.025, detune: -7, wet: 0.6 });
+				bell(f * 2, 0.42, 0.08, 2.4 * s);
+			});
+			for (let i = 0; i < 14; i++) tone({ f: 2600 + Math.random() * 2600, t: 0.5 + Math.random() * 1.6 * s, dur: 0.25, vol: 0.025, wet: 0.8 });
+		},
+		// Block reward: two soft bells a fifth apart and a sparkle, unlike the fee coins.
+		block() {
+			bell(784, 0, 0.11, 1.6);
+			bell(1175, 0.11, 0.09, 1.8);
+			[2349, 2794, 3136].forEach((f, i) => tone({ f, t: 0.3 + i * 0.06, dur: 0.35, type: 'triangle', vol: 0.03, wet: 0.6 }));
+		}
+	};
+	function play(kind, p, scale) {
+		if (!ready() || !kinds[kind]) return;
+		// Keep fast bot bursts from smearing into noise.
+		if (kind === 'tick' || kind === 'coin') {
+			const now = performance.now();
+			if (now - lastLow < 70) return;
+			lastLow = now;
+		}
+		kinds[kind](p || 1, scale || 1);
+	}
+	return { unlock, ready, play };
+})();
+
+// ─── particles: sparks off the fee counter, coins and confetti for $1+ fees ───
+const Particles = (() => {
+	let c = null, g = null, parts = [], raf = 0;
+	function size() {
+		const dpr = Math.min(2, window.devicePixelRatio || 1);
+		c.width = innerWidth * dpr;
+		c.height = innerHeight * dpr;
+		g.setTransform(dpr, 0, 0, dpr, 0, 0);
+	}
+	function loop() {
+		const now = performance.now();
+		g.clearRect(0, 0, innerWidth, innerHeight);
+		parts = parts.filter((p) => now - p.born < p.life);
+		for (const p of parts) {
+			const k = (now - p.born) / p.life;
+			p.vy += p.g;
+			p.vx *= p.drag;
+			p.vy *= p.drag;
+			p.x += p.vx;
+			p.y += p.vy;
+			p.r += p.vr;
+			g.globalAlpha = Math.max(0, 1 - Math.pow(k, 2.4));
+			if (p.kind === 'spark') {
+				g.fillStyle = p.c;
+				g.beginPath();
+				g.arc(p.x, p.y, p.s * (1 - k * 0.6), 0, 6.283);
+				g.fill();
+			} else if (p.kind === 'coin') {
+				const w = Math.max(0.12, Math.abs(Math.cos(p.r))) * p.s;
+				g.fillStyle = '#c99a00';
+				g.beginPath();
+				g.ellipse(p.x, p.y, w, p.s, 0, 0, 6.283);
+				g.fill();
+				g.fillStyle = '#ffd400';
+				g.beginPath();
+				g.ellipse(p.x - w * 0.12, p.y - p.s * 0.1, w * 0.72, p.s * 0.72, 0, 0, 6.283);
+				g.fill();
+			} else {
+				g.save();
+				g.translate(p.x, p.y);
+				g.rotate(p.r);
+				g.fillStyle = p.c;
+				g.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2);
+				g.restore();
+			}
+		}
+		g.globalAlpha = 1;
+		raf = parts.length ? requestAnimationFrame(loop) : 0;
+	}
+	function burst(kind, x, y, n, colors) {
+		if (reduced() || document.hidden) return;
+		if (!c) {
+			c = $('fx');
+			g = c.getContext('2d');
+			size();
+			addEventListener('resize', size);
+		}
+		const now = performance.now();
+		for (let i = 0; i < n; i++) {
+			const p = { kind, x, y, born: now, r: Math.random() * 6.28, c: colors[(Math.random() * colors.length) | 0] };
+			if (kind === 'spark') {
+				const a = Math.random() * 6.283, v = 2 + Math.random() * 5;
+				Object.assign(p, { vx: Math.cos(a) * v, vy: Math.sin(a) * v - 1, g: 0.06, drag: 0.95, vr: 0, s: 1.5 + Math.random() * 2, life: 550 + Math.random() * 450 });
+			} else if (kind === 'coin') {
+				const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.2, v = 6 + Math.random() * 7;
+				Object.assign(p, { vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: 0.34, drag: 0.992, vr: 0.18 + Math.random() * 0.25, s: 5 + Math.random() * 5, life: 1700 + Math.random() * 700 });
+			} else {
+				Object.assign(p, { vx: (Math.random() - 0.5) * 13, vy: Math.random() * 6 - 2, g: 0.22, drag: 0.985, vr: (Math.random() - 0.5) * 0.3, s: 7 + Math.random() * 6, life: 2600 });
+			}
+			parts.push(p);
+		}
+		if (!raf) raf = requestAnimationFrame(loop);
+	}
+	return { burst, count: () => parts.length };
+})();
+
+/**
+ * Sound and big-fee moments. Every swap with a fee of $0.001+ rings (tick → coin → chime, rising
+ * in pitch through a burst); $0.25+ drops a yellow "Big fee" strip out of the band with a
+ * ka-ching, $1+ a "Whale fee" strip with confetti; a paid block rings bells. One switch, beside the
+ * theme button, turns it all off. While sound is on, the page keeps listening in a background tab.
+ */
+const Fx = (() => {
+	const st = { on: true, streak: 0, lastLow: 0, ann: 0, annTimer: 0, target: null, title: null, hot: 0 };
+	const audible = () => st.on && Sound.ready();
+	const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+	function sync() {
+		const b = $('fxBtn');
+		if (!b) return;
+		const locked = st.on && !Sound.ready();
+		b.setAttribute('aria-pressed', String(st.on));
+		b.classList.toggle('locked', locked);
+		b.title = !st.on ? 'Sound and big-fee moments: off' : locked ? 'Sound is on: tap anywhere on the page to hear it' : 'Sound and big-fee moments: on';
+	}
+	const confirmSound = () => Sound.unlock().then((ok) => { if (ok && st.on) Sound.play('coin', 1); });
+	function set(on) {
+		st.on = on;
+		if (on) confirmSound();
+		else { hide(); st.title = null; }
+		sync();
+		saveUi();
+	}
+	function init(on) {
+		st.on = on !== false;
+		// Audio may only start from a tap or key press; the first one anywhere does it.
+		const unlock = (e) => {
+			if (!st.on || Sound.ready() || (e.target && e.target.closest && e.target.closest('#fxBtn'))) return;
+			Sound.unlock().then(sync);
+		};
+		['pointerup', 'touchend', 'keydown'].forEach((ev) => addEventListener(ev, unlock, { capture: true, passive: true }));
+		$('fxBtn').onclick = () => {
+			if (st.on && !Sound.ready()) return void confirmSound().then(sync); // first tap starts the sound rather than switching it off
+			set(!st.on);
+		};
+		$('annIn').onclick = go;
+		sync();
+	}
+
+	// The announcement strip under the band; a bigger moment isn't replaced by a smaller one.
+	function announce(rank, kind, label, value, detail, target, ms) {
+		const box = $('ann'), btn = $('annIn');
+		if (box.classList.contains('on') && rank < st.ann) return;
+		st.ann = rank;
+		st.target = target;
+		const wasOn = box.classList.contains('on');
+		box.className = 'ann ' + kind + (wasOn ? ' on' : '');
+		btn.innerHTML = '<span class="wrap ann-row"><span class="ann-k">' + label + '</span><b class="ann-v">' + value + '</b><span class="ann-d">' + detail + '</span><span class="ann-go">' + (target.swap ? 'See the swap' : 'Block rewards') + '</span></span>';
+		btn.tabIndex = 0;
+		if (!wasOn) { void box.offsetWidth; box.classList.add('on'); }
+		clearTimeout(st.annTimer);
+		st.annTimer = setTimeout(hide, ms);
+	}
+	function hide() {
+		$('ann').classList.remove('on');
+		$('annIn').tabIndex = -1;
+		st.ann = 0;
+	}
+	/** Tap the strip: open that swap on the live board (or the block rewards card). */
+	function go() {
+		const t = st.target;
+		hide();
+		if (!t) return;
+		if (S.tab !== 'overview') setTab('overview');
+		if (t.swap) {
+			Dep.open = t.swap;
+			Dep.hover = false;
+			renderDep();
+		}
+		const el = t.swap ? document.querySelector('#dep li[data-id="' + CSS.escape(t.swap) + '"]') || $('dep') : $('rwPanel');
+		el.scrollIntoView({ block: 'center', behavior: reduced() ? 'auto' : 'smooth' });
+		if (t.swap && el.tagName === 'LI') el.focus({ preventScroll: true });
+	}
+
+	function ding(r) {
+		if (!audible()) return;
+		const now = performance.now();
+		st.streak = now - st.lastLow < 2500 ? Math.min(st.streak + 1, 12) : 0; // a semitone up per hit, up to an octave
+		st.lastLow = now;
+		Sound.play(TIER[tierOf(r.fee)], Math.pow(2, st.streak / 12));
+	}
+	function celebrate(r, more) {
+		const whale = tierOf(r.fee) >= 5;
+		const label = whale ? 'Whale fee' : 'Big fee';
+		if (audible()) Sound.play(whale ? 'whale' : 'big', 1, r.fee);
+		if (document.hidden) {
+			st.title = { text: '+' + usd(r.fee, 2) + ' ' + label.toLowerCase(), until: Date.now() + 20000 };
+			return;
+		}
+		const a = actorOf(r.s, r.id);
+		announce(whale ? 3 : 2, whale ? 'whale' : 'big', label, '+' + usd(r.fee, 2),
+			bullet(a.line, a.name) + '<span>' + esc(r.a) + ' → ' + esc(r.b) + ' · ' + usd(r.usd || 0) + ' swap · ' + esc(a.name) + (more ? ' · and ' + more + ' more' : '') + '</span>',
+			{ swap: r.id }, whale ? 7500 : 5500);
+		const ink = cssVar('--ink'), lc = cssVar('--l-' + lineOf(a.line).key) || ink, gold = cssVar('--signal');
+		const fig = $('feeFig').getBoundingClientRect();
+		const figSeen = S.tab === 'overview' && fig.bottom > 110 && fig.top < innerHeight;
+		if (figSeen) {
+			st.hot = Date.now(); // the "+$x" chip off the counter turns yellow too
+			Particles.burst('spark', fig.right - 8, fig.top + fig.height * 0.5, whale ? 40 : 26, [gold, lc, ink]);
+			if (!reduced()) $('feeFig').animate([{ transform: 'none' }, { transform: 'scale(1.07)', offset: 0.3 }, { transform: 'none' }], { duration: 650, easing: EASE_OUT });
+		}
+		if (whale) {
+			requestAnimationFrame(() => {
+				const v = document.querySelector('#annIn .ann-v');
+				const vr = v ? v.getBoundingClientRect() : { left: innerWidth / 2, width: 0, bottom: 120 };
+				Particles.burst('confetti', vr.left + vr.width / 2, vr.bottom + 10, 150, [gold, lc, ink, gold]);
+				if (figSeen) Particles.burst('coin', fig.right - 20, fig.top + fig.height * 0.5, 40, [gold]);
+			});
+		}
+	}
+	/** New swaps from one poll, oldest first. */
+	function swaps(rows) {
+		if (!st.on || !rows.length) return;
+		const now = Date.now();
+		const live = rows.filter((r) => now - r.ts < 10 * 60000); // a catch-up after the phone slept isn't news
+		if (!live.length) return;
+		let best = live[0];
+		for (const r of live) if (r.fee > best.fee) best = r;
+		const big = tierOf(best.fee) >= 4;
+		if (big) celebrate(best, live.filter((r) => r !== best && tierOf(r.fee) >= 4).length);
+		// The rest ring in on-chain order, spread across the next poll so a batch plays out like it happened.
+		const ring = live.filter((r) => r !== best || !big).filter((r) => tierOf(r.fee) >= 1);
+		if (!audible() || !ring.length) return;
+		const keep = new Set(ring.slice().sort((a, b) => b.fee - a.fee).slice(0, 12));
+		const t0 = ring[0].ts, span = Math.max(1, ring[ring.length - 1].ts - t0), room = POLL_MS - 800;
+		let at = big ? 300 : -1e9;
+		for (const r of ring) {
+			if (!keep.has(r)) continue;
+			at = Math.max(ring.length > 1 ? ((r.ts - t0) / span) * room : 0, at + 85);
+			setTimeout(() => ding(r), at);
+		}
+	}
+	/** A Pact account was paid for proposing a block. */
+	function block(algo, name, round, ts) {
+		if (!st.on || !(algo > 0) || Date.now() / 1000 - ts > 600) return;
+		if (audible()) Sound.play('block');
+		if (document.hidden) {
+			st.title = { text: '+' + num(algo, 2) + ' ALGO block reward', until: Date.now() + 20000 };
+			return;
+		}
+		const p = AlgoPrice.price() || S.feed.algoUsd;
+		announce(1, 'block', 'Block reward', '+' + num(algo, 2) + ' ALGO', '<span>' + esc(name) + ' proposed block ' + num(round, 0) + (p ? ' · ≈ ' + usd(algo * p, 2) : '') + '</span>', { block: round }, 5000);
+	}
+	return {
+		init, sync, swaps, block, audible,
+		on: () => st.on,
+		takeHot: () => { const h = Date.now() - st.hot < 2000; st.hot = 0; return h; },
+		title: () => (st.title && st.title.until > Date.now() ? st.title.text + ' · ' : '')
+	};
+})();
 
 // ─── block rewards: ALGO paid to Pact accounts for proposing blocks ───
 const Rewards = (() => {
@@ -1517,12 +1943,14 @@ const Rewards = (() => {
 		});
 	}
 	async function poll() {
-		if (!R.on || R.busy || !R.watch.length || document.hidden) return;
+		if (!R.on || R.busy || !R.watch.length || (document.hidden && !Fx.audible())) return;
 		R.busy = true;
 		try {
 			const j = await getJSON(IDX + '/v2/block-headers?proposers=' + R.watch.join(',') + '&min-round=' + (R.round + 1) + '&limit=200');
 			const blocks = (j.blocks || []).filter((b) => b.round > R.round).sort((a, b) => a.round - b.round);
 			for (const b of blocks) apply(b.round, b.timestamp, (b['proposer-payout'] || 0) / 1e6, who(b.proposer)); // payout omitted when 0
+			const paid = blocks.filter((b) => b['proposer-payout'] > 0);
+			if (paid.length) { const b = paid[paid.length - 1]; Fx.block(b['proposer-payout'] / 1e6, who(b.proposer), b.round, b.timestamp); }
 			if (blocks.length) { render(); renderHist(); }
 		} catch (e) {
 		} finally {
@@ -2840,7 +3268,7 @@ function setTab(t, focus) {
 	renderTab();
 	tip.hide();
 }
-function saveUi() { store.set(UI_KEY, { tab: S.tab, win: S.win, pace: S.pace, poolType: S.poolType, liqType: S.liqType, theme: document.documentElement.dataset.theme || null }); }
+function saveUi() { store.set(UI_KEY, { tab: S.tab, win: S.win, pace: S.pace, poolType: S.poolType, liqType: S.liqType, theme: document.documentElement.dataset.theme || null, fx: Fx.on() }); }
 function bindControls() {
 	const tabs = Array.from(document.querySelectorAll('.tab'));
 	tabs.forEach((b, i) => {
@@ -2938,33 +3366,35 @@ async function loadMarket() {
 		document.querySelectorAll('[data-cov]').forEach((el) => (el.textContent = 'Market data unavailable right now (' + e.message + ').'));
 	}
 }
+/** New priced swaps, oldest first: count them, ring them, put them on the board. */
+function ingest(priced) {
+	const fresh = new Set();
+	for (const r of priced) {
+		S.seen.add(r.id);
+		S.newestTs = Math.max(S.newestTs, r.ts);
+		apply(r);
+		fresh.add(r.id);
+	}
+	Fx.swaps(priced);
+	const dot = document.querySelector('#status .dot');
+	dot.classList.remove('ping');
+	void dot.offsetWidth;
+	dot.classList.add('ping');
+	if (S.tab === 'overview') {
+		renderMonth();
+		renderDep(fresh);
+		schedulePace();
+	}
+}
 let polling = false;
 async function poll() {
-	if (polling || document.hidden) return;
+	if (polling || (document.hidden && !Fx.audible())) return; // with sound on, keep listening in the background
 	polling = true;
 	try {
 		const { rows } = await fetchSince(S.newestTs - 90000, Date.now() - S.lastOk > 60000 ? 30 : 4);
 		S.lastOk = Date.now();
 		setStatus('Live');
-		if (rows.length) {
-			const priced = await price(rows);
-			const fresh = new Set();
-			for (const r of priced) {
-				S.seen.add(r.id);
-				S.newestTs = Math.max(S.newestTs, r.ts);
-				apply(r);
-				fresh.add(r.id);
-			}
-			const dot = document.querySelector('#status .dot');
-			dot.classList.remove('ping');
-			void dot.offsetWidth;
-			dot.classList.add('ping');
-			if (S.tab === 'overview') {
-				renderMonth();
-				renderDep(fresh);
-				schedulePace();
-			}
-		}
+		if (rows.length) ingest(await price(rows));
 	} catch (e) {
 		setStatus('Reconnecting');
 	} finally {
@@ -3009,6 +3439,7 @@ async function boot() {
 	S.recent = p.feed.recent.slice();
 	for (const r of S.recent) S.seen.add(r.id);
 
+	Fx.init(ui.fx);
 	bindControls();
 	bindDep();
 	setTab(location.hash.slice(1) || ui.tab || 'overview');
@@ -3034,7 +3465,7 @@ async function boot() {
 	setInterval(loadMarket, MARKET_POLL_MS);
 	setInterval(() => {
 		if (S.ready && S.feed.monthEnd && Date.now() / 1000 >= S.feed.monthEnd) rollMonth();
-		document.title = usd(S.total, 2) + ' · Pact';
+		document.title = Fx.title() + usd(S.total, 2) + ' · Pact';
 	}, 1000);
 	setInterval(() => { if (S.tab === 'overview') { renderGain(); Rewards.render(); } covNote(); renderFoot(); }, 30000);
 	let leftAt = null;

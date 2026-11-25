@@ -342,7 +342,13 @@ The day's order flow as one transit line: a 10px-tall bar split into segments pe
 The flow map is a vertical transit diagram. Each order-flow source present in the window is a vertical line (6px, round caps) in its colour, headed by its bullet (r 10) and, on wide layouts, its volume. Each pool is a station row (40px; 36px narrow) with its name (12.5px 600 `ink`) and a `muted` sub-line of fee tier, pool type and volume on the left, rows divided by `hair` grid lines; a final "Other pools" row collects the rest. Where a line trades a pool, a stop disc sits on the line with area proportional to volume (radius from 2.5px up to about 15px, 2px `panel` stroke). An interchange bar (2px `ink2` at 45% opacity) joins the outermost lines sharing a station, drawn under the tracks. A line under 1% of volume is drawn thin (3px) at 45% opacity. Each line ends at its last stop. Hovering a line, stop or station dims everything unrelated to 18%; a bullet legend and a "Show as table" fallback sit beneath.
 
 ### Live Swaps (departures list)
-An ordered list styled as a departures board: a 44px tabular time, the actor's bullet, the pool (600 name, 11.5px `muted` detail) and a right-aligned amount, rows divided by hairlines. New rows flash `sunk` and fade over 2.4s; that is the only arrival motion.
+An ordered list styled as a departures board: a 44px tabular time, the actor's bullet, the pool (600 name, 11.5px `muted` detail) and a right-aligned amount, rows divided by hairlines. New rows slide in washed in their line's colour; a fee of $0.25+ carries a `signal` tag on its fee line.
+
+### Sound & Big-Fee Moments (opt-out)
+Decided 2026-11-25 at Andrew's request, reversing the 2026-11-20 "no game effects" rule. One speaker button beside the theme switch turns all of it off; it is on by default (a `signal` dot marks it until a first tap lets the browser start audio) and the choice is remembered.
+- **Fee tiers** (per swap): tick $0.001+, coin $0.01+, nice $0.05+, big $0.25+, whale $1+. Synthesized Web Audio sounds, nothing downloaded; small tiers rise a semitone per hit through a burst and play spread over the poll in on-chain order. Block rewards ring two bells.
+- **Announcement strip:** big and whale fees drop a `signal` strip (`on-signal` ink) out from under the band on every tab: a tag, the fee in 23px 700 (34px for whale), then the actor's bullet, pair, swap size and actor. Tapping it opens that swap on the board. Whale adds a light sweep, confetti in `signal`, the actor's line colour and `ink`, and coins off the fee counter. A block reward uses the band's colours with a `signal` tag. A bigger moment is never replaced by a smaller one.
+- Reduced motion keeps the strip (fade, no slide) and the sounds and drops particles and sweeps. In a background tab with sound on, the page keeps listening and puts the fee in the tab title.
 
 ### Tooltip
 Fixed, max 280px, 8px 10px, 6px corners, `tip-bg` / `tip-ink`, 12.5px. Bold title; rows pair a 12x2px line key (or 8px dot) with a `tip-2` label and a bold tabular value. Fades in over 0.12s.
@@ -362,6 +368,7 @@ Fixed, max 280px, 8px 10px, 6px corners, `tip-bg` / `tip-ink`, 12.5px. Bold titl
 - **Don't** use a line colour for anything that is not that actor; Pact's own totals are `ink` and comparisons are `cmp`.
 - **Don't** put fixed white text on a fill that changes between modes.
 - **Don't** add card shadows; the only shadows are the pressed segment and the tooltip.
-- **Don't** add sounds, particles, odometers, banners, toasts or idle animation; motion is for data that changed.
+- **Don't** add sounds, particles, banners or toasts outside the opt-out big-fee moments, and no idle animation; motion is for data that changed.
+- **Don't** use `signal` yellow for anything but big-fee moments.
 - **Don't** add a second display-size figure to a view.
 - **Don't** introduce a second typeface.
